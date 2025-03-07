@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Playwright Automation</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Playwright Automation</h1>
+    </header>
+    
+    <div class="scripts-container">
+      <div id="scriptsList"></div>
+    </div>
+    
+    <!-- Logs toggle button -->
+    <div id="logsToggle" class="logs-toggle">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </div>
+    
+    <!-- Logs container -->
+    <div id="logsContainer" class="logs-container">
+      <div class="logs-header">
+        <h3>Execution Logs</h3>
+        <button id="closeLogsBtn" class="secondary-button">Close</button>
+      </div>
+      <pre id="logsContent" class="logs-content"></pre>
+    </div>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html> 

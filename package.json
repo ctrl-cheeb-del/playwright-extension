@@ -1,0 +1,23 @@
+{
+  "name": "playwright-extension",
+  "version": "0.1.0",
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc && vite build",
+    "dev": "vite build --watch"
+  },
+  "dependencies": {
+    "@types/node": "^22.13.9",
+    "playwright-crx": "0.12.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.281",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.6",
+    "rollup-plugin-sourcemaps": "^0.6.3"
+  }
+}

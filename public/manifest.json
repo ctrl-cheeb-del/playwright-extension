@@ -1,0 +1,29 @@
+{
+  "name": "Playwright Automation Manager",
+  "version": "0.12.0",
+  "manifest_version": 3,
+  "description": "Manage and run Playwright automation scripts in your browser",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Playwright Automation Manager",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "debugger",
+    "tabs",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
