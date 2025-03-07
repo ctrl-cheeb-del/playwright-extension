@@ -1,5 +1,5 @@
 {
-  "name": "Playwright Automation Manager",
+  "name": "Playwright Extension",
   "version": "0.12.0",
   "manifest_version": 3,
   "description": "Manage and run Playwright automation scripts in your browser",
@@ -8,7 +8,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Playwright Automation Manager",
+    "default_title": "Playwright Extension",
     "default_popup": "popup.html"
   },
   "permissions": [
