@@ -18,23 +18,22 @@ class PopupUI {
     this.syncButton = document.getElementById('syncButton') as HTMLButtonElement;
 
     this.initializeEventListeners();
-    this.loadScripts();
+    // Always force sync when opening popup
+    this.loadScripts(true);
   }
 
-  private async loadScripts() {
+  private async loadScripts(forceSync = false) {
     try {
-      this.scripts = await getAvailableScripts(true);
+      // Get all scripts (local + remote)
+      this.scripts = await getAvailableScripts(forceSync);
       this.renderScriptsList(this.scripts);
     } catch (error) {
-      console.error('Error loading scripts:', error);
       this.showLogs([`Error loading scripts: ${error instanceof Error ? error.message : String(error)}`], true);
     }
   }
 
   private renderScriptsList(scripts: ScriptDefinition[]) {
     this.scriptsList.innerHTML = '';
-    
-    console.log('Rendering scripts:', scripts.map(s => ({ id: s.id, name: s.name, source: s.source })));
     
     scripts.forEach((script, index) => {
       // Add a small delay to each item for a staggered animation effect
@@ -46,9 +45,6 @@ class PopupUI {
         const sourceBadge = script.source === 'remote' 
           ? '<span class="badge remote-badge">Remote</span>' 
           : '';
-        
-        // Add script ID as data attribute for debugging
-        scriptElement.dataset.scriptId = script.id;
         
         scriptElement.innerHTML = `
           <div class="script-info">
@@ -104,6 +100,7 @@ class PopupUI {
       this.renderScriptsList(this.scripts);
     } catch (error) {
       console.error('Error syncing scripts:', error);
+      this.showLogs([`Error syncing scripts: ${error instanceof Error ? error.message : String(error)}`], true);
     } finally {
       this.isSyncing = false;
       this.syncButton.classList.remove('syncing');

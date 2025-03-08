@@ -16,7 +16,7 @@ export const localScripts: ScriptDefinition[] = Object.values(scriptModules)
   .sort((a, b) => a.name.localeCompare(b.name));
 
 // This will hold all scripts (local + remote)
-let allScripts: ScriptDefinition[] = [...localScripts];
+let allScripts: ScriptDefinition[] = [];
 
 // Helper to find a script by ID
 export function findScript(id: string): ScriptDefinition | undefined {
@@ -25,29 +25,12 @@ export function findScript(id: string): ScriptDefinition | undefined {
 
 // Get all available scripts (local + remote)
 export async function getAvailableScripts(forceSync = false): Promise<ScriptDefinition[]> {
-  // If we're forcing a sync or this is the first load, sync with remote
-  if (forceSync || allScripts.length === localScripts.length) {
+  // Always sync on first load or when forced
+  if (forceSync || allScripts.length === 0) {
     allScripts = await scriptSyncService.getAllScripts(localScripts);
   }
   
-  // Deduplicate scripts by ID, preferring local scripts over remote ones
-  const scriptsMap = new Map<string, ScriptDefinition>();
-  
-  // Add local scripts first
-  localScripts.forEach(script => {
-    scriptsMap.set(script.id, script);
-  });
-  
-  // Add remote scripts only if they don't conflict with local ones
-  allScripts
-    .filter(script => script.source === 'remote')
-    .forEach(script => {
-      if (!scriptsMap.has(script.id)) {
-        scriptsMap.set(script.id, script);
-      }
-    });
-  
-  return Array.from(scriptsMap.values());
+  return allScripts;
 }
 
 // Sync with remote repository

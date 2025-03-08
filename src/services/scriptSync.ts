@@ -13,8 +13,10 @@ class ScriptSyncService {
    */
   async syncScripts(): Promise<RemoteScript[]> {
     try {
+      // Add cache-busting timestamp to prevent caching
       const cacheBuster = Date.now();
       
+      // Fetch the files from GitHub repository root
       const response = await fetch(
         `https://api.github.com/repos/${GITHUB_REPO}/contents/${SCRIPTS_PATH}?ref=${GITHUB_BRANCH}&_=${cacheBuster}`,
         {
@@ -31,13 +33,16 @@ class ScriptSyncService {
       
       const files = await response.json();
       
+      // Filter for .ts files
       const scriptFiles = files.filter((file: any) => 
         file.type === 'file' && (file.name.endsWith('.ts') || file.name.endsWith('.js'))
       );
       
+      // Fetch each script file
       const scripts: RemoteScript[] = [];
       
       for (const file of scriptFiles) {
+        // Add cache-busting to file URL
         const fileUrl = `${file.download_url}?_=${cacheBuster}`;
         const scriptResponse = await fetch(fileUrl, {
           headers: {
@@ -48,6 +53,8 @@ class ScriptSyncService {
         
         if (scriptResponse.ok) {
           const scriptText = await scriptResponse.text();
+          
+          // Parse the TypeScript file to extract script information
           const parsedScript = this.parseTypeScriptFile(scriptText, file.name);
           if (parsedScript) {
             scripts.push(parsedScript);
@@ -55,10 +62,11 @@ class ScriptSyncService {
         }
       }
       
+      // Save to storage
       await storageService.saveRemoteScripts(scripts);
+      
       return scripts;
     } catch (error) {
-      console.error('Error syncing scripts:', error);
       return [];
     }
   }
@@ -94,7 +102,6 @@ class ScriptSyncService {
       const runFunctionBody = runFunctionMatch ? runFunctionMatch[1].trim() : '';
       
       if (!runFunctionBody) {
-        console.error(`Could not extract run function body from ${fileName}`);
         return null;
       }
       
@@ -107,7 +114,6 @@ class ScriptSyncService {
         version: Date.now() // Use timestamp as version
       };
     } catch (error) {
-      console.error(`Error parsing TypeScript file ${fileName}:`, error);
       return null;
     }
   }
@@ -155,10 +161,6 @@ class ScriptSyncService {
   async getAllScripts(localScripts: ScriptDefinition[]): Promise<ScriptDefinition[]> {
     // Get remote scripts from storage
     const remoteScripts = await storageService.getRemoteScripts();
-    console.log(`Retrieved ${remoteScripts.length} remote scripts from storage`);
-    
-    // Log all remote script IDs for debugging
-    console.log('Remote script IDs:', remoteScripts.map(s => s.id));
     
     // Convert remote scripts to script definitions
     const convertedRemoteScripts = remoteScripts.map(script => 
@@ -175,9 +177,6 @@ class ScriptSyncService {
         allScripts.push(remoteScript);
       }
     }
-    
-    console.log(`Total scripts available: ${allScripts.length} (${localScripts.length} local, ${convertedRemoteScripts.length} remote)`);
-    console.log('All script IDs:', allScripts.map(s => s.id));
     
     return allScripts;
   }

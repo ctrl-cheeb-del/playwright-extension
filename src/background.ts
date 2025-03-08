@@ -15,8 +15,18 @@
  */
 
 import type { ScriptExecutionResult } from './core/types';
-import { getAvailableScripts } from './core/registry';
+import { getAvailableScripts, syncRemoteScripts } from './core/registry';
 import { crx } from 'playwright-crx';
+
+// Sync scripts when extension is loaded
+chrome.runtime.onStartup.addListener(() => {
+  syncRemoteScripts();
+});
+
+// Also sync when extension is installed or updated
+chrome.runtime.onInstalled.addListener(() => {
+  syncRemoteScripts();
+});
 
 interface ExecuteScriptMessage {
   type: 'EXECUTE_SCRIPT';
@@ -37,17 +47,13 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
   const logs: string[] = [];
   
   try {
-    console.log(`Looking for script with ID: ${scriptId}`);
-    
     // Get all scripts to ensure we have the latest
     const allScripts = await getAvailableScripts();
-    console.log(`Available script IDs: ${allScripts.map(s => s.id).join(', ')}`);
     
     // Find the script by ID
     const script = allScripts.find(s => s.id === scriptId);
     
     if (!script) {
-      console.error(`Script not found: ${scriptId}`);
       return {
         success: false,
         error: `Script not found: ${scriptId}`,
@@ -55,7 +61,6 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
       };
     }
     
-    console.log(`Found script: ${script.id} (${script.name})`);
     logs.push(`Executing script: ${script.name}`);
 
     const crxApp = await crx.start();
@@ -105,14 +110,13 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logs.push(`Error: ${errorMessage}`);
-      console.error(`Script execution error:`, error);
       
       if (script.useCurrentTab) {
         try {
           await crxApp.detach(page);
           logs.push('Detached from tab');
         } catch (detachError) {
-          console.error('Error detaching from tab:', detachError);
+          // Ignore detach errors
         }
       }
       
@@ -126,7 +130,6 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`Fatal error:`, error);
     logs.push(`Fatal error: ${errorMessage}`);
     
     return {
