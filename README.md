@@ -7,6 +7,8 @@ A Chrome extension that allows you to run Playwright automation scripts directly
 - Run Playwright automation scripts in your browser with a single click
 - Support for both new tab and current tab automation
 - Real-time execution logs
+- **NEW: Dynamic JavaScript Execution for Remote Scripts**
+- Sync scripts from GitHub repository
 
 ## Installation
 
@@ -40,9 +42,9 @@ A Chrome extension that allows you to run Playwright automation scripts directly
 
 ## Creating Scripts
 
-Scripts are stored in the `src/scripts` directory. Each script is a TypeScript file that exports a default `ScriptDefinition` object.
+Scripts are stored in the `src/scripts` directory for local scripts, or can be hosted in a GitHub repository for remote scripts.
 
-### Script Structure
+### Local Scripts
 
 Create a new file in the `src/scripts` directory (e.g., `myScript.ts`) with the following structure:
 
@@ -72,79 +74,67 @@ const script: ScriptDefinition = {
 export default script;
 ```
 
-### Script Context
+### Remote Scripts (GitHub)
 
-Each script receives a `ctx` object with the following properties:
+You can host scripts in a GitHub repository and sync them to your extension. The extension includes a dynamic JavaScript execution system that can safely execute these scripts without violating Chrome's Content Security Policy.
 
-- `page`: A Playwright [Page](https://playwright.dev/docs/api/class-page) object for browser automation
-- `log`: A function to log messages to the extension UI
+1. Create a GitHub repository (e.g., `playwright-script-examples`)
+2. Add TypeScript files with the same structure as local scripts
+3. Update the `GITHUB_REPO` constant in `src/services/scriptSync.ts` to point to your repository
+4. Click the sync button in the extension to fetch and parse the scripts
 
-### Script Options
-
-- `id`: A unique identifier for the script
-- `name`: The display name shown in the UI
-- `description`: A brief description of what the script does
-- `useCurrentTab`: If `true`, the script will run in the current tab; if `false`, it will open a new tab
-- `run`: The async function containing the automation code
-
-## Example Scripts
-
-### GitHub Search Script
+Example remote script:
 
 ```typescript
+// File: google-search.ts
+
 import type { ScriptDefinition } from '../core/types';
 
 const script: ScriptDefinition = {
-  id: 'github-search',
-  name: 'GitHub Search',
-  description: 'Navigate to a GitHub repo and perform a search',
+  id: 'google-search',
+  name: 'Google Search',
+  description: 'Navigate to Google and perform a search',
   useCurrentTab: true,
   async run(ctx) {
     const { page, log } = ctx;
     
-    log('Navigating to GitHub repository...');
-    await page.goto('https://github.com/ctrl-cheeb-del/resoled');
+    log('Navigating to Google...');
+    await page.goto('https://www.google.com');
     
-    log('Waiting for 2 seconds...');
-    await page.waitForTimeout(2000);
-    
-    log('Pressing / key to open search...');
-    await page.keyboard.press('/');
-    
-    log('Waiting another 2 seconds...');
-    await page.waitForTimeout(2000);
+    log('Waiting for page to load...');
+    await page.waitForTimeout(1000);
     
     log('Typing search query...');
-    await page.keyboard.type('hello world');
+    await page.fill('input[name="q"]', 'playwright automation');
     
-    log('Search completed');
+    log('Pressing Enter to search...');
+    await page.press('input[name="q"]', 'Enter');
+    
+    log('Waiting for search results...');
+    await page.waitForTimeout(2000);
+    
+    log('Search completed successfully!');
   }
 };
 
 export default script;
 ```
 
-### Simple Test Script
+## How the Dynamic JavaScript Execution Works
 
-```typescript
-import type { ScriptDefinition } from '../core/types';
+The extension includes a dynamic JavaScript execution system that can safely execute remote scripts without violating Chrome's Content Security Policy:
 
-const script: ScriptDefinition = {
-  id: 'test',
-  name: 'Test Script',
-  description: 'A simple test script that demonstrates the script structure',
-  useCurrentTab: false, // Opens in a new tab
-  async run(ctx) {
-    ctx.log('Starting test script...');
-    await ctx.page.goto('https://example.com');
-    ctx.log('Navigated to example.com');
-    const title = await ctx.page.title();
-    ctx.log(`Page title: ${title}`);
-  }
-};
+1. **Script Extraction**: When you sync scripts from GitHub, the extension fetches the TypeScript files and extracts the script information and function body.
 
-export default script;
-```
+2. **Dynamic Proxy**: The system creates a dynamic proxy around the Playwright `page` object that intercepts all method calls.
+
+3. **Method Forwarding**: Any method call on the proxied `page` object is automatically forwarded to the real Playwright API.
+
+4. **Safe Execution**: Instead of using `eval()` directly, the system uses a controlled execution environment with access only to the provided context.
+
+5. **Full JavaScript Support**: This approach allows scripts to use any Playwright method, not just predefined ones, while still complying with Chrome's security restrictions.
+
+This approach is similar to implementing a lightweight JavaScript engine that bridges to the real Playwright API, allowing for maximum flexibility while maintaining security.
 
 ## Using the Extension
 
@@ -152,9 +142,14 @@ export default script;
 2. You'll see a list of available scripts with their descriptions
 3. Click "Run" to execute a script
 4. View real-time logs by clicking the logs button
+5. Click the sync button to fetch remote scripts from GitHub
 
 ## Troubleshooting
 
 - If scripts aren't appearing in the UI, make sure they export a default `ScriptDefinition` object
 - Check the browser console for any errors
 - Ensure you've reloaded the extension after making changes to scripts
+
+## License
+
+ISC

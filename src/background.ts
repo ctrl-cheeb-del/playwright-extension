@@ -15,7 +15,7 @@
  */
 
 import type { ScriptExecutionResult } from './core/types';
-import { findScript } from './core/registry';
+import { getAvailableScripts } from './core/registry';
 import { crx } from 'playwright-crx';
 
 interface ExecuteScriptMessage {
@@ -35,19 +35,30 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
 
 async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
   const logs: string[] = [];
-  const script = findScript(scriptId);
-
-  if (!script) {
-    return {
-      success: false,
-      error: `Script not found: ${scriptId}`,
-      logs
-    };
-  }
-
-  let crxApp;
+  
   try {
-    crxApp = await crx.start();
+    console.log(`Looking for script with ID: ${scriptId}`);
+    
+    // Get all scripts to ensure we have the latest
+    const allScripts = await getAvailableScripts();
+    console.log(`Available script IDs: ${allScripts.map(s => s.id).join(', ')}`);
+    
+    // Find the script by ID
+    const script = allScripts.find(s => s.id === scriptId);
+    
+    if (!script) {
+      console.error(`Script not found: ${scriptId}`);
+      return {
+        success: false,
+        error: `Script not found: ${scriptId}`,
+        logs: [`Error: Script with ID "${scriptId}" not found`]
+      };
+    }
+    
+    console.log(`Found script: ${script.id} (${script.name})`);
+    logs.push(`Executing script: ${script.name}`);
+
+    const crxApp = await crx.start();
     
     let page;
     if (script.useCurrentTab) {
@@ -77,26 +88,51 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
       }
     };
 
-    await script.run(ctx);
-
-    if (script.useCurrentTab) {
-      await crxApp.detach(page);
-      logs.push('Detached from tab');
-    }
-
-    return {
-      success: true,
-      logs
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-      logs
-    };
-  } finally {
-    if (crxApp) {
+    try {
+      // Execute the script with our context
+      await script.run(ctx);
+      logs.push(`Script ${script.name} completed successfully`);
+      
+      if (script.useCurrentTab) {
+        await crxApp.detach(page);
+        logs.push('Detached from tab');
+      }
+      
+      return {
+        success: true,
+        logs
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logs.push(`Error: ${errorMessage}`);
+      console.error(`Script execution error:`, error);
+      
+      if (script.useCurrentTab) {
+        try {
+          await crxApp.detach(page);
+          logs.push('Detached from tab');
+        } catch (detachError) {
+          console.error('Error detaching from tab:', detachError);
+        }
+      }
+      
+      return {
+        success: false,
+        error: errorMessage,
+        logs
+      };
+    } finally {
       await crxApp.close();
     }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Fatal error:`, error);
+    logs.push(`Fatal error: ${errorMessage}`);
+    
+    return {
+      success: false,
+      error: errorMessage,
+      logs
+    };
   }
 }

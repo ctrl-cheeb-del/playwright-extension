@@ -345,4 +345,47 @@ input[type="text"]:focus, textarea:focus {
 
 .script-item {
   animation: fadeIn 0.3s ease;
+}
+
+/* Sync button */
+#syncButton {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+#syncButton.syncing svg {
+  animation: rotate 1.5s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Badge for remote scripts */
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.remote-badge {
+  background-color: var(--accent);
+  color: var(--bg-primary);
+}
+
+.script-id {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-top: 4px;
 } 

@@ -1,33 +1,58 @@
-import type { ScriptExecutionResult } from './core/types';
-import { availableScripts } from './core/registry';
+import type { ScriptDefinition, ScriptExecutionResult } from './core/types';
+import { getAvailableScripts, syncRemoteScripts } from './core/registry';
 
 class PopupUI {
   private scriptsList: HTMLDivElement;
   private logsContainer: HTMLDivElement;
   private logsContent: HTMLPreElement;
   private logsToggle: HTMLDivElement;
+  private syncButton: HTMLButtonElement;
+  private scripts: ScriptDefinition[] = [];
+  private isSyncing = false;
 
   constructor() {
     this.scriptsList = document.getElementById('scriptsList') as HTMLDivElement;
     this.logsContainer = document.getElementById('logsContainer') as HTMLDivElement;
     this.logsContent = document.getElementById('logsContent') as HTMLPreElement;
     this.logsToggle = document.getElementById('logsToggle') as HTMLDivElement;
+    this.syncButton = document.getElementById('syncButton') as HTMLButtonElement;
 
     this.initializeEventListeners();
-    this.renderScriptsList();
+    this.loadScripts();
   }
 
-  private renderScriptsList() {
+  private async loadScripts() {
+    try {
+      this.scripts = await getAvailableScripts(true);
+      this.renderScriptsList(this.scripts);
+    } catch (error) {
+      console.error('Error loading scripts:', error);
+      this.showLogs([`Error loading scripts: ${error instanceof Error ? error.message : String(error)}`], true);
+    }
+  }
+
+  private renderScriptsList(scripts: ScriptDefinition[]) {
     this.scriptsList.innerHTML = '';
     
-    availableScripts.forEach((script, index) => {
+    console.log('Rendering scripts:', scripts.map(s => ({ id: s.id, name: s.name, source: s.source })));
+    
+    scripts.forEach((script, index) => {
       // Add a small delay to each item for a staggered animation effect
       setTimeout(() => {
         const scriptElement = document.createElement('div');
         scriptElement.className = 'script-item';
+        
+        // Add a badge for remote scripts
+        const sourceBadge = script.source === 'remote' 
+          ? '<span class="badge remote-badge">Remote</span>' 
+          : '';
+        
+        // Add script ID as data attribute for debugging
+        scriptElement.dataset.scriptId = script.id;
+        
         scriptElement.innerHTML = `
           <div class="script-info">
-            <strong>${script.name}</strong>
+            <strong>${script.name} ${sourceBadge}</strong>
             <small>${script.description}</small>
           </div>
           <div class="script-actions">
@@ -40,6 +65,11 @@ class PopupUI {
   }
 
   private showLogs(logs: string[], isComplete = false) {
+    // Make sure logs are not empty
+    if (!logs || logs.length === 0) {
+      logs = ['No logs available'];
+    }
+    
     this.logsContent.textContent = logs.join('\n');
     this.logsContent.scrollTop = this.logsContent.scrollHeight;
     
@@ -48,8 +78,11 @@ class PopupUI {
       this.logsToggle.classList.add('visible');
     }
     
+    // Always show logs container when logs are updated
+    this.logsContainer.classList.add('active');
+    
     // If logs are complete and container is not active, show a notification effect
-    if (isComplete && !this.logsContainer.classList.contains('active')) {
+    if (isComplete) {
       this.logsToggle.classList.add('pulse');
       setTimeout(() => this.logsToggle.classList.remove('pulse'), 1000);
     }
@@ -59,6 +92,24 @@ class PopupUI {
     this.logsContainer.classList.toggle('active');
   }
 
+  private async syncScripts() {
+    if (this.isSyncing) return;
+    
+    this.isSyncing = true;
+    this.syncButton.classList.add('syncing');
+    
+    try {
+      await syncRemoteScripts();
+      this.scripts = await getAvailableScripts(true);
+      this.renderScriptsList(this.scripts);
+    } catch (error) {
+      console.error('Error syncing scripts:', error);
+    } finally {
+      this.isSyncing = false;
+      this.syncButton.classList.remove('syncing');
+    }
+  }
+
   private initializeEventListeners() {
     // Listen for script execution updates
     chrome.runtime.onMessage.addListener((message) => {
@@ -66,6 +117,11 @@ class PopupUI {
         this.showLogs(message.logs);
       }
       return true;
+    });
+
+    // Sync button
+    this.syncButton.addEventListener('click', () => {
+      this.syncScripts();
     });
 
     // Logs toggle button
@@ -86,12 +142,17 @@ class PopupUI {
       const scriptId = target.getAttribute('data-id');
       if (!scriptId) return;
 
+      console.log(`Running script with ID: ${scriptId}`);
+      
       if (target.matches('.run-script')) {
         // Add a running indicator to the button
         const button = target as HTMLButtonElement;
         const originalText = button.textContent;
         button.innerHTML = '<span class="status-indicator running"></span>Running...';
         button.disabled = true;
+        
+        // Show logs container immediately with initial message
+        this.showLogs([`Starting script execution for script ID: ${scriptId}...`]);
         
         try {
           const result = await this.runScript(scriptId);
@@ -110,6 +171,9 @@ class PopupUI {
           }, 2000);
           
         } catch (error) {
+          console.error('Error running script:', error);
+          this.showLogs([`Error running script: ${error instanceof Error ? error.message : String(error)}`], true);
+          
           button.innerHTML = '<span class="status-indicator error"></span>Error';
           setTimeout(() => {
             button.innerHTML = originalText || 'Run';
@@ -122,19 +186,33 @@ class PopupUI {
 
   private async runScript(scriptId: string): Promise<ScriptExecutionResult> {
     try {
+      console.log(`Sending message to execute script: ${scriptId}`);
+      
       const result = await chrome.runtime.sendMessage({
         type: 'EXECUTE_SCRIPT',
         scriptId
       }) as ScriptExecutionResult;
 
+      console.log(`Received execution result:`, result);
+      
+      // If logs are empty, add a default message
+      if (!result.logs || result.logs.length === 0) {
+        result.logs = result.success 
+          ? ['Script executed successfully but no logs were generated.'] 
+          : [`Script failed: ${result.error || 'Unknown error'}`];
+      }
+      
       this.showLogs(result.logs, true);
       return result;
     } catch (error) {
       console.error('Failed to execute script:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.showLogs([`Error: ${errorMessage}`], true);
+      
       return {
         success: false,
-        error: String(error),
-        logs: [`Error: ${error}`]
+        error: errorMessage,
+        logs: [`Error: ${errorMessage}`]
       };
     }
   }
