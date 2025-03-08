@@ -13,7 +13,7 @@
   "dependencies": {
     "@types/node": "^22.13.9",
     "playwright-crx": "0.12.0",
-    "scraggy": "^0.0.8"
+    "scraggy": "^0.0.11"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.281",

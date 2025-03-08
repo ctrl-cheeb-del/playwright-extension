@@ -15,8 +15,9 @@
  */
 
 import type { ScriptExecutionResult } from './core/types';
-import { getAvailableScripts, syncRemoteScripts } from './core/registry';
+import { getAvailableScripts, syncRemoteScripts, addScript, deleteScript } from './core/registry';
 import { crx } from 'playwright-crx';
+import { recordingService } from './services/recording';
 
 // Sync scripts when extension is loaded
 chrome.runtime.onStartup.addListener(() => {
@@ -33,12 +34,95 @@ interface ExecuteScriptMessage {
   scriptId: string;
 }
 
-type Message = ExecuteScriptMessage;
+interface StartRecordingMessage {
+  type: 'START_RECORDING';
+  useCurrentTab: boolean;
+}
+
+interface StopRecordingMessage {
+  type: 'STOP_RECORDING';
+}
+
+interface SaveRecordedScriptMessage {
+  type: 'SAVE_RECORDED_SCRIPT';
+  scriptName: string;
+  scriptDescription: string;
+}
+
+interface GetRecordingStateMessage {
+  type: 'GET_RECORDING_STATE';
+}
+
+interface GetScriptCodeMessage {
+  type: 'GET_SCRIPT_CODE';
+  scriptName: string;
+  scriptDescription: string;
+}
+
+interface DiscardRecordingMessage {
+  type: 'DISCARD_RECORDING';
+}
+
+interface DeleteScriptMessage {
+  type: 'DELETE_SCRIPT';
+  scriptId: string;
+}
+
+type Message = 
+  | ExecuteScriptMessage 
+  | StartRecordingMessage 
+  | StopRecordingMessage
+  | SaveRecordedScriptMessage
+  | GetRecordingStateMessage
+  | GetScriptCodeMessage
+  | DiscardRecordingMessage
+  | DeleteScriptMessage;
 
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
   if (message.type === 'EXECUTE_SCRIPT') {
     executeScript(message.scriptId).then(sendResponse);
+    return true;
+  } else if (message.type === 'START_RECORDING') {
+    recordingService.startRecording(message.useCurrentTab).then(sendResponse);
+    return true;
+  } else if (message.type === 'STOP_RECORDING') {
+    recordingService.stopRecording().then(actions => {
+      sendResponse(actions);
+    });
+    return true;
+  } else if (message.type === 'SAVE_RECORDED_SCRIPT') {
+    const script = recordingService.generateScript(
+      message.scriptName, 
+      message.scriptDescription
+    );
+    addScript(script).then(() => {
+      sendResponse(true);
+    });
+    return true;
+  } else if (message.type === 'GET_RECORDING_STATE') {
+    // Return the current recording state
+    sendResponse(recordingService.getRecordingState());
+    return true;
+  } else if (message.type === 'GET_SCRIPT_CODE') {
+    // Return the script code as a string for copying to clipboard
+    const scriptCode = recordingService.generateCompleteScriptString(
+      message.scriptName,
+      message.scriptDescription
+    );
+    sendResponse(scriptCode);
+    return true;
+  } else if (message.type === 'DISCARD_RECORDING') {
+    // Discard the recording
+    recordingService.discardRecording().then(() => {
+      sendResponse(true);
+    });
+    return true;
+  } else if (message.type === 'DELETE_SCRIPT') {
+    // Delete the script
+    deleteScript(message.scriptId).then(success => {
+      sendResponse(success);
+    });
     return true;
   }
 });

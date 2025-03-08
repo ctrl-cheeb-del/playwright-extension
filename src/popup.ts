@@ -1,4 +1,4 @@
-import type { ScriptDefinition, ScriptExecutionResult } from './core/types';
+import type { RecordedAction, ScriptDefinition, ScriptExecutionResult } from './core/types';
 import { getAvailableScripts, syncRemoteScripts } from './core/registry';
 
 class PopupUI {
@@ -7,8 +7,26 @@ class PopupUI {
   private logsContent: HTMLPreElement;
   private logsToggle: HTMLDivElement;
   private syncButton: HTMLButtonElement;
+  private recordButton: HTMLButtonElement;
+  private recordingModal: HTMLDivElement;
+  private recordingOptions: HTMLDivElement;
+  private recordingStatus: HTMLDivElement;
+  private saveRecordingForm: HTMLDivElement;
+  private startRecordingBtn: HTMLButtonElement;
+  private stopRecordingBtn: HTMLButtonElement;
+  private copyScriptBtn: HTMLButtonElement;
+  private saveScriptBtn: HTMLButtonElement;
+  private closeRecordingModalBtn: HTMLButtonElement;
+  private actionsCount: HTMLSpanElement;
+  private actionsSummary: HTMLSpanElement;
+  private scriptName: HTMLInputElement;
+  private scriptDescription: HTMLInputElement;
+  private recordingModalTitle: HTMLHeadingElement;
+  
   private scripts: ScriptDefinition[] = [];
   private isSyncing = false;
+  private isRecording = false;
+  private recordedActions: RecordedAction[] = [];
 
   constructor() {
     this.scriptsList = document.getElementById('scriptsList') as HTMLDivElement;
@@ -16,8 +34,27 @@ class PopupUI {
     this.logsContent = document.getElementById('logsContent') as HTMLPreElement;
     this.logsToggle = document.getElementById('logsToggle') as HTMLDivElement;
     this.syncButton = document.getElementById('syncButton') as HTMLButtonElement;
+    this.recordButton = document.getElementById('recordButton') as HTMLButtonElement;
+    this.recordingModal = document.getElementById('recordingModal') as HTMLDivElement;
+    this.recordingOptions = document.getElementById('recordingOptions') as HTMLDivElement;
+    this.recordingStatus = document.getElementById('recordingStatus') as HTMLDivElement;
+    this.saveRecordingForm = document.getElementById('saveRecordingForm') as HTMLDivElement;
+    this.startRecordingBtn = document.getElementById('startRecordingBtn') as HTMLButtonElement;
+    this.stopRecordingBtn = document.getElementById('stopRecordingBtn') as HTMLButtonElement;
+    this.copyScriptBtn = document.getElementById('copyScriptBtn') as HTMLButtonElement;
+    this.saveScriptBtn = document.getElementById('saveScriptBtn') as HTMLButtonElement;
+    this.closeRecordingModalBtn = document.getElementById('closeRecordingModalBtn') as HTMLButtonElement;
+    this.actionsCount = document.getElementById('actionsCount') as HTMLSpanElement;
+    this.actionsSummary = document.getElementById('actionsSummary') as HTMLSpanElement;
+    this.scriptName = document.getElementById('scriptName') as HTMLInputElement;
+    this.scriptDescription = document.getElementById('scriptDescription') as HTMLInputElement;
+    this.recordingModalTitle = document.getElementById('recordingModalTitle') as HTMLHeadingElement;
 
     this.initializeEventListeners();
+    
+    // Check if recording is in progress when popup opens
+    this.checkRecordingState();
+    
     // Always force sync when opening popup
     this.loadScripts(true);
   }
@@ -46,6 +83,17 @@ class PopupUI {
           ? '<span class="badge remote-badge">Remote</span>' 
           : '';
         
+        // Only show delete button for locally recorded scripts (not remote scripts or built-in scripts)
+        const deleteButton = script.source === 'local' && !script.isRemote
+          ? `<button class="secondary-button delete-script" data-id="${script.id}" title="Delete script">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+              </svg>
+            </button>`
+          : '';
+        
         scriptElement.innerHTML = `
           <div class="script-info">
             <strong>${script.name} ${sourceBadge}</strong>
@@ -53,11 +101,26 @@ class PopupUI {
           </div>
           <div class="script-actions">
             <button class="primary-button run-script" data-id="${script.id}">Run</button>
+            ${deleteButton}
           </div>
         `;
         this.scriptsList.appendChild(scriptElement);
       }, index * 50); // Stagger each item by 50ms
     });
+    
+    // Add event listeners for delete buttons
+    setTimeout(() => {
+      const deleteButtons = document.querySelectorAll('.delete-script');
+      deleteButtons.forEach(button => {
+        button.addEventListener('click', (event) => {
+          event.stopPropagation(); // Prevent bubbling to parent elements
+          const scriptId = (button as HTMLElement).dataset.id;
+          if (scriptId) {
+            this.deleteScript(scriptId);
+          }
+        });
+      });
+    }, scripts.length * 50 + 100); // Add a little extra time to ensure all items are rendered
   }
 
   private showLogs(logs: string[], isComplete = false) {
@@ -99,7 +162,6 @@ class PopupUI {
       this.scripts = await getAvailableScripts(true);
       this.renderScriptsList(this.scripts);
     } catch (error) {
-      console.error('Error syncing scripts:', error);
       this.showLogs([`Error syncing scripts: ${error instanceof Error ? error.message : String(error)}`], true);
     } finally {
       this.isSyncing = false;
@@ -121,14 +183,74 @@ class PopupUI {
       this.syncScripts();
     });
 
-    // Logs toggle button
-    this.logsToggle.addEventListener('click', () => {
-      this.toggleLogs();
+    // Record button
+    this.recordButton.addEventListener('click', () => {
+      this.openRecordingModal();
+    });
+
+    // Close recording modal
+    this.closeRecordingModalBtn.addEventListener('click', () => {
+      if (this.isRecording) {
+        this.stopRecording();
+      } else {
+        // Clear the recorded actions
+        this.recordedActions = [];
+        
+        // Reset the recording state in the background service
+        chrome.runtime.sendMessage({
+          type: 'DISCARD_RECORDING'
+        });
+        
+        // Close the modal
+        this.closeRecordingModal();
+      }
+    });
+
+    // Start recording button
+    this.startRecordingBtn.addEventListener('click', () => {
+      const useCurrentTab = (document.querySelector('input[name="tabOption"]:checked') as HTMLInputElement)?.value === 'current';
+      this.startRecording(useCurrentTab);
+    });
+
+    // Stop recording button
+    this.stopRecordingBtn.addEventListener('click', () => {
+      this.stopRecording();
+    });
+
+    // Copy script button
+    this.copyScriptBtn.addEventListener('click', () => {
+      this.copyScriptToClipboard();
+    });
+
+    // Save script button
+    this.saveScriptBtn.addEventListener('click', () => {
+      this.saveRecordedScript();
+    });
+
+    // Listen for recording status updates
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'RECORDING_STATUS_UPDATE') {
+        this.isRecording = message.isRecording;
+        this.recordedActions = message.actions;
+        this.updateRecordingUI();
+        
+        // Update the tab URL if available
+        if (message.tabUrl) {
+          this.updateRecordingTabInfo(message.tabUrl);
+        }
+      } else if (message.type === 'SCRIPT_LOG_UPDATE') {
+        this.showLogs(message.logs);
+      }
     });
 
     // Close logs button
     document.getElementById('closeLogsBtn')?.addEventListener('click', () => {
       this.logsContainer.classList.remove('active');
+    });
+
+    // Logs toggle
+    this.logsToggle.addEventListener('click', () => {
+      this.toggleLogs();
     });
 
     // Delegate click events for script actions
@@ -181,6 +303,129 @@ class PopupUI {
     });
   }
 
+  private openRecordingModal() {
+    // Reset the modal state
+    this.recordingOptions.style.display = 'block';
+    this.recordingStatus.style.display = 'none';
+    this.saveRecordingForm.style.display = 'none';
+    this.recordingModalTitle.textContent = 'Start Recording';
+    
+    // Reset recording tab info
+    const recordingTabInfo = document.getElementById('recordingTabInfo');
+    if (recordingTabInfo) {
+      recordingTabInfo.textContent = '';
+      recordingTabInfo.style.display = 'none';
+    }
+    
+    // Show the modal
+    this.recordingModal.classList.add('active');
+  }
+
+  private closeRecordingModal() {
+    this.recordingModal.classList.remove('active');
+  }
+
+  private async startRecording(useCurrentTab: boolean) {
+    try {
+      const success = await chrome.runtime.sendMessage({
+        type: 'START_RECORDING',
+        useCurrentTab
+      });
+
+      if (success) {
+        this.isRecording = true;
+        this.recordedActions = [];
+        this.updateRecordingUI();
+        
+        // If using current tab, close the popup to let the user interact with the page
+        if (useCurrentTab) {
+          window.close();
+        }
+      } else {
+        // Show error in the UI instead of an alert
+        this.startRecordingBtn.textContent = 'Failed to start';
+        this.startRecordingBtn.classList.add('error');
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          this.startRecordingBtn.textContent = 'Start Recording';
+          this.startRecordingBtn.classList.remove('error');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      // Show error in the UI instead of an alert
+      this.startRecordingBtn.textContent = 'Error';
+      this.startRecordingBtn.classList.add('error');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        this.startRecordingBtn.textContent = 'Start Recording';
+        this.startRecordingBtn.classList.remove('error');
+      }, 2000);
+    }
+  }
+
+  private async stopRecording() {
+    try {
+      const actions = await chrome.runtime.sendMessage({
+        type: 'STOP_RECORDING'
+      });
+
+      this.isRecording = false;
+      this.recordedActions = actions;
+      this.updateRecordingUI();
+      
+      // Set default name and description
+      const timestamp = new Date().toLocaleString();
+      this.scriptName.value = `Recorded Script ${timestamp}`;
+      this.scriptDescription.value = `Script recorded on ${timestamp}`;
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      // Show error in the UI instead of an alert
+      this.stopRecordingBtn.textContent = 'Error';
+      this.stopRecordingBtn.classList.add('error');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        this.stopRecordingBtn.textContent = 'Stop Recording';
+        this.stopRecordingBtn.classList.remove('error');
+      }, 2000);
+    }
+  }
+
+  private updateRecordingUI() {
+    // Reset recording tab info display
+    const recordingTabInfo = document.getElementById('recordingTabInfo');
+    if (recordingTabInfo) {
+      recordingTabInfo.style.display = this.isRecording ? 'block' : 'none';
+    }
+    
+    if (this.isRecording) {
+      // Show recording status
+      this.recordingOptions.style.display = 'none';
+      this.recordingStatus.style.display = 'block';
+      this.saveRecordingForm.style.display = 'none';
+      this.recordingModalTitle.textContent = 'Recording in Progress';
+    } else if (this.recordedActions.length > 0) {
+      // Show copy form
+      this.recordingOptions.style.display = 'none';
+      this.recordingStatus.style.display = 'none';
+      this.saveRecordingForm.style.display = 'block';
+      this.recordingModalTitle.textContent = 'Recording Complete';
+    } else {
+      // Show options
+      this.recordingOptions.style.display = 'block';
+      this.recordingStatus.style.display = 'none';
+      this.saveRecordingForm.style.display = 'none';
+      this.recordingModalTitle.textContent = 'Start Recording';
+    }
+    
+    // Update action counts
+    this.actionsCount.textContent = this.recordedActions.length.toString();
+    this.actionsSummary.textContent = this.recordedActions.length.toString();
+  }
+
   private async runScript(scriptId: string): Promise<ScriptExecutionResult> {
     try {
       console.log(`Sending message to execute script: ${scriptId}`);
@@ -211,6 +456,212 @@ class PopupUI {
         error: errorMessage,
         logs: [`Error: ${errorMessage}`]
       };
+    }
+  }
+
+  private async checkRecordingState() {
+    try {
+      const state = await chrome.runtime.sendMessage({
+        type: 'GET_RECORDING_STATE'
+      });
+      
+      if (state) {
+        this.isRecording = state.isRecording;
+        this.recordedActions = state.actions;
+        
+        // Update UI based on recording state
+        if (this.isRecording || this.recordedActions.length > 0) {
+          this.openRecordingModal();
+          this.updateRecordingUI();
+          
+          // If recording is in progress, show the tab URL
+          if (this.isRecording && state.tabUrl) {
+            this.updateRecordingTabInfo(state.tabUrl);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking recording state:', error);
+    }
+  }
+  
+  private updateRecordingTabInfo(url: string) {
+    const recordingTabInfo = document.getElementById('recordingTabInfo');
+    if (recordingTabInfo) {
+      recordingTabInfo.textContent = `Recording in: ${url}`;
+      recordingTabInfo.style.display = 'block';
+    }
+  }
+
+  private async copyScriptToClipboard() {
+    try {
+      const name = this.scriptName.value.trim() || `Recorded Script ${new Date().toLocaleString()}`;
+      const description = this.scriptDescription.value.trim() || `Script recorded on ${new Date().toLocaleString()}`;
+      
+      // Get the script code from the background service
+      const scriptCode = await chrome.runtime.sendMessage({
+        type: 'GET_SCRIPT_CODE',
+        scriptName: name,
+        scriptDescription: description
+      });
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(scriptCode);
+      
+      // Show success message in the UI (not an alert)
+      const copyBtn = this.copyScriptBtn;
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      copyBtn.disabled = true;
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.disabled = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Error copying script to clipboard:', error);
+      // Show error in the UI instead of an alert
+      const copyBtn = this.copyScriptBtn;
+      copyBtn.textContent = 'Error!';
+      copyBtn.classList.add('error');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy Script';
+        copyBtn.classList.remove('error');
+      }, 2000);
+    }
+  }
+
+  private async saveRecordedScript() {
+    try {
+      const name = this.scriptName.value.trim() || `Recorded Script ${new Date().toLocaleString()}`;
+      const description = this.scriptDescription.value.trim() || `Script recorded on ${new Date().toLocaleString()}`;
+      
+      // Save the script via the background service
+      const success = await chrome.runtime.sendMessage({
+        type: 'SAVE_RECORDED_SCRIPT',
+        scriptName: name,
+        scriptDescription: description
+      });
+      
+      if (success) {
+        // Show success message in the UI
+        const saveBtn = this.saveScriptBtn;
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = 'Saved!';
+        saveBtn.disabled = true;
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          saveBtn.textContent = originalText;
+          saveBtn.disabled = false;
+          
+          // Close the recording modal and refresh the scripts list
+          this.closeRecordingModal();
+          this.loadScripts(true);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error saving script:', error);
+      
+      // Show error in the UI
+      const saveBtn = this.saveScriptBtn;
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = 'Error!';
+      saveBtn.classList.add('error');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        saveBtn.textContent = originalText;
+        saveBtn.classList.remove('error');
+      }, 2000);
+    }
+  }
+
+  private async deleteScript(scriptId: string) {
+    try {
+      // Find the script element in the DOM
+      const scriptElement = document.querySelector(`.script-item button[data-id="${scriptId}"]`)?.closest('.script-item') as HTMLElement;
+      if (!scriptElement) return;
+      
+      // Show deletion in progress
+      const deleteButton = scriptElement.querySelector('.delete-script') as HTMLButtonElement;
+      if (!deleteButton) return;
+      
+      const originalContent = deleteButton.innerHTML;
+      deleteButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="deleting-icon">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+        </svg>
+      `;
+      deleteButton.disabled = true;
+      
+      // Send delete request to background
+      const success = await chrome.runtime.sendMessage({
+        type: 'DELETE_SCRIPT',
+        scriptId
+      });
+
+      if (success) {
+        // Animate the removal of the script element
+        scriptElement.style.transition = 'all 0.3s ease';
+        scriptElement.style.opacity = '0';
+        scriptElement.style.height = '0';
+        scriptElement.style.overflow = 'hidden';
+        
+        // After animation, remove the element and refresh the list
+        setTimeout(() => {
+          scriptElement.remove();
+          this.loadScripts(true);
+        }, 300);
+      } else {
+        // Show error state
+        deleteButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        `;
+        deleteButton.classList.add('error');
+        
+        // Reset after 2 seconds
+        setTimeout(() => {
+          deleteButton.innerHTML = originalContent;
+          deleteButton.classList.remove('error');
+          deleteButton.disabled = false;
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error deleting script:', error);
+      
+      // Find the script element and show error state
+      const deleteButton = document.querySelector(`.script-item button[data-id="${scriptId}"]`) as HTMLButtonElement;
+      if (deleteButton) {
+        deleteButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        `;
+        deleteButton.classList.add('error');
+        
+        // Reset after 2 seconds
+        setTimeout(() => {
+          deleteButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+            </svg>
+          `;
+          deleteButton.classList.remove('error');
+          deleteButton.disabled = false;
+        }, 2000);
+      }
     }
   }
 }

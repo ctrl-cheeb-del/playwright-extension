@@ -61,6 +61,11 @@ function createGlobalScope(context: ScriptContext): Record<string, any> {
 
 export async function executeScript(scriptCode: string, context: ScriptContext): Promise<void> {
   try {
+    // Log the first few lines of the script for debugging
+    const previewLines = scriptCode.split('\n').slice(0, 5).join('\n');
+    console.log('Executing script preview:', previewLines + '...');
+    context.log('Script execution started');
+    
     await evaluate(createGlobalScope(context), scriptCode);
   } catch (error) {
     console.error('Error executing script:', error);
