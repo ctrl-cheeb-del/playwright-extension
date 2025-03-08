@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@types/node": "^22.13.9",
-    "acorn": "^8.14.1",
-    "playwright-crx": "0.12.0"
+    "playwright-crx": "0.12.0",
+    "scraggy": "^0.0.5"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.281",
