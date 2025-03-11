@@ -28,7 +28,11 @@ function createDynamicProxy(target: any, path = ''): any {
 
 function createGlobalScope(context: ScriptContext): Record<string, any> {
   return {
-    ctx: { page: createDynamicProxy(context.page, 'page'), log: context.log },
+    ctx: { 
+      page: createDynamicProxy(context.page, 'page'), 
+      log: context.log,
+      parameters: context.parameters || {}
+    },
 
     console: {
       log: (...args: any[]) => {
@@ -65,6 +69,10 @@ export async function executeScript(scriptCode: string, context: ScriptContext):
     const previewLines = scriptCode.split('\n').slice(0, 5).join('\n');
     console.log('Executing script preview:', previewLines + '...');
     context.log('Script execution started');
+    
+    if (context.parameters && Object.keys(context.parameters).length > 0) {
+      context.log(`Using parameters: ${JSON.stringify(context.parameters)}`);
+    }
     
     await evaluate(createGlobalScope(context), scriptCode);
   } catch (error) {

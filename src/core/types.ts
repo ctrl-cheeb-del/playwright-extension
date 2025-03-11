@@ -3,6 +3,15 @@ import type { Page } from 'playwright-crx';
 export interface ScriptContext {
   page: Page;
   log: (msg: string) => void;
+  parameters?: Record<string, any>;  // Parameter values provided by the user
+}
+
+export interface ScriptParameter {
+  name: string;
+  description: string;
+  type: 'string' | 'number' | 'boolean';
+  default?: string | number | boolean;
+  required?: boolean;
 }
 
 export interface ScriptDefinition {
@@ -15,6 +24,7 @@ export interface ScriptDefinition {
   lastUpdated?: number;  // Timestamp for when the script was last updated
   isRemote?: boolean;  // Flag to indicate if this is a remote script
   code?: string;  // The script code as a string (for interpreter execution)
+  parameters?: ScriptParameter[];  // Parameters that can be configured when running the script
 }
 
 // Remote script format (what we fetch from GitHub)
@@ -82,6 +92,12 @@ export interface DeleteScriptMessage {
   scriptId: string;
 }
 
+export interface ExecuteScriptMessage {
+  type: 'EXECUTE_SCRIPT';
+  scriptId: string;
+  parameters?: Record<string, any>;  // Parameter values provided by the user
+}
+
 export interface RecordedAction {
   type: string;  // 'click', 'fill', 'press', etc.
   selector?: string;
@@ -98,7 +114,8 @@ export type ChromeMessage =
   | GetRecordingStateMessage
   | GetScriptCodeMessage
   | DiscardRecordingMessage
-  | DeleteScriptMessage;
+  | DeleteScriptMessage
+  | ExecuteScriptMessage;
 
 // For storing scripts in storage (without the run function)
 export interface SerializableScript extends Omit<ScriptDefinition, 'run'> {

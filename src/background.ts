@@ -32,6 +32,7 @@ chrome.runtime.onInstalled.addListener(() => {
 interface ExecuteScriptMessage {
   type: 'EXECUTE_SCRIPT';
   scriptId: string;
+  parameters?: Record<string, any>;
 }
 
 interface StartRecordingMessage {
@@ -81,7 +82,7 @@ type Message =
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
   if (message.type === 'EXECUTE_SCRIPT') {
-    executeScript(message.scriptId).then(sendResponse);
+    executeScript(message.scriptId, message.parameters).then(sendResponse);
     return true;
   } else if (message.type === 'START_RECORDING') {
     recordingService.startRecording(message.useCurrentTab).then(sendResponse);
@@ -127,7 +128,7 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
   }
 });
 
-async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
+async function executeScript(scriptId: string, parameters?: Record<string, any>): Promise<ScriptExecutionResult> {
   const logs: string[] = [];
   let crxApp = null;
   
@@ -147,6 +148,11 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
     }
     
     logs.push(`Executing script: ${script.name}`);
+
+    // If the script has parameters, log them
+    if (parameters && Object.keys(parameters).length > 0) {
+      logs.push(`Using parameters: ${JSON.stringify(parameters)}`);
+    }
 
     // Try to start CRX with retry logic
     const maxRetries = 2;
@@ -204,7 +210,8 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
           type: 'SCRIPT_LOG_UPDATE',
           logs: [...logs]
         });
-      }
+      },
+      parameters // Pass parameters to the script context
     };
 
     try {

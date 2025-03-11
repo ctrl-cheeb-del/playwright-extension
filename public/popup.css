@@ -428,8 +428,12 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .remote-badge {
-  background-color: var(--accent);
-  color: var(--bg-primary);
+  background-color: #74c7ec;
+}
+
+.parameters-badge {
+  background-color: #f9e2af;
+  color: #1e1e2e;
 }
 
 .script-id {
@@ -708,4 +712,84 @@ textarea {
 
 .tab-option label span {
   font-size: 13px;
+}
+
+/* Parameters Modal Styles */
+.parameters-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.parameters-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.parameters-modal .modal-content {
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 300px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease;
+}
+
+.parameters-modal .form-group {
+  margin-bottom: 16px;
+}
+
+.parameters-modal .form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.parameters-modal .form-group small {
+  display: block;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.parameters-modal .form-group input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.parameters-modal .form-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+
+.parameters-modal .modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.parameters-modal form {
+  padding: 16px;
+}
+
+.required {
+  color: var(--error);
+  margin-left: 2px;
 } 

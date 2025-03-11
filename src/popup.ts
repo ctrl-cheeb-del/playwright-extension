@@ -22,6 +22,7 @@ class PopupUI {
   private scriptName: HTMLInputElement;
   private scriptDescription: HTMLInputElement;
   private recordingModalTitle: HTMLHeadingElement;
+  private parametersModal: HTMLDivElement | null = null;
   
   private scripts: ScriptDefinition[] = [];
   private isSyncing = false;
@@ -267,37 +268,47 @@ class PopupUI {
         // Add a running indicator to the button
         const button = target as HTMLButtonElement;
         const originalText = button.textContent;
-        button.innerHTML = '<span class="status-indicator running"></span>Running...';
-        button.disabled = true;
         
-        // Show logs container immediately with initial message
-        this.showLogs([`Starting script execution for script ID: ${scriptId}...`]);
+        // Find the script
+        const script = this.scripts.find(s => s.id === scriptId);
         
-        try {
-          const result = await this.runScript(scriptId);
+        if (script && script.parameters && script.parameters.length > 0) {
+          // If the script has parameters, show the parameters modal
+          this.showParametersModal(script, button);
+        } else {
+          // If no parameters, run the script directly
+          button.innerHTML = '<span class="status-indicator running"></span>Running...';
+          button.disabled = true;
           
-          // Update button to show success/error
-          if (result.success) {
-            button.innerHTML = '<span class="status-indicator success"></span>Success';
-          } else {
-            button.innerHTML = '<span class="status-indicator error"></span>Failed';
+          // Show logs container immediately with initial message
+          this.showLogs([`Starting script execution for script ID: ${scriptId}...`]);
+          
+          try {
+            const result = await this.runScript(scriptId);
+            
+            // Update button to show success/error
+            if (result.success) {
+              button.innerHTML = '<span class="status-indicator success"></span>Success';
+            } else {
+              button.innerHTML = '<span class="status-indicator error"></span>Failed';
+            }
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+              button.innerHTML = originalText || 'Run';
+              button.disabled = false;
+            }, 2000);
+            
+          } catch (error) {
+            console.error('Error running script:', error);
+            this.showLogs([`Error running script: ${error instanceof Error ? error.message : String(error)}`], true);
+            
+            button.innerHTML = '<span class="status-indicator error"></span>Error';
+            setTimeout(() => {
+              button.innerHTML = originalText || 'Run';
+              button.disabled = false;
+            }, 2000);
           }
-          
-          // Reset button after 2 seconds
-          setTimeout(() => {
-            button.innerHTML = originalText || 'Run';
-            button.disabled = false;
-          }, 2000);
-          
-        } catch (error) {
-          console.error('Error running script:', error);
-          this.showLogs([`Error running script: ${error instanceof Error ? error.message : String(error)}`], true);
-          
-          button.innerHTML = '<span class="status-indicator error"></span>Error';
-          setTimeout(() => {
-            button.innerHTML = originalText || 'Run';
-            button.disabled = false;
-          }, 2000);
         }
       }
     });
@@ -426,13 +437,14 @@ class PopupUI {
     this.actionsSummary.textContent = this.recordedActions.length.toString();
   }
 
-  private async runScript(scriptId: string): Promise<ScriptExecutionResult> {
+  private async runScript(scriptId: string, parameters?: Record<string, any>): Promise<ScriptExecutionResult> {
     try {
       console.log(`Sending message to execute script: ${scriptId}`);
       
       const result = await chrome.runtime.sendMessage({
         type: 'EXECUTE_SCRIPT',
-        scriptId
+        scriptId,
+        parameters
       }) as ScriptExecutionResult;
 
       console.log(`Received execution result:`, result);
@@ -663,6 +675,173 @@ class PopupUI {
         }, 2000);
       }
     }
+  }
+
+  // Create and show a modal for entering script parameters
+  private showParametersModal(script: ScriptDefinition, runButton: HTMLButtonElement) {
+    // Create the modal if it doesn't exist
+    if (!this.parametersModal) {
+      this.parametersModal = document.createElement('div');
+      this.parametersModal.className = 'modal parameters-modal';
+      document.body.appendChild(this.parametersModal);
+    }
+    
+    // Clear any existing content
+    this.parametersModal.innerHTML = '';
+    
+    // Create the modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    
+    // Add a header
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+    header.innerHTML = `
+      <h3>Configure Parameters for "${script.name}"</h3>
+      <button class="close-button" id="closeParametersBtn">&times;</button>
+    `;
+    modalContent.appendChild(header);
+    
+    // Add a form for the parameters
+    const form = document.createElement('form');
+    form.id = 'parametersForm';
+    
+    // Add fields for each parameter
+    script.parameters?.forEach(param => {
+      const formGroup = document.createElement('div');
+      formGroup.className = 'form-group';
+      
+      const label = document.createElement('label');
+      label.setAttribute('for', `param-${param.name}`);
+      label.textContent = param.name;
+      
+      const description = document.createElement('small');
+      description.textContent = param.description;
+      
+      const input = document.createElement('input');
+      input.id = `param-${param.name}`;
+      input.name = param.name;
+      
+      // Set input type based on parameter type
+      if (param.type === 'number') {
+        input.type = 'number';
+      } else if (param.type === 'boolean') {
+        input.type = 'checkbox';
+      } else {
+        input.type = 'text';
+      }
+      
+      // Set default value if available
+      if (param.default !== undefined) {
+        if (param.type === 'boolean') {
+          (input as HTMLInputElement).checked = Boolean(param.default);
+        } else {
+          input.value = String(param.default);
+        }
+      }
+      
+      // Mark required fields
+      if (param.required) {
+        input.required = true;
+        label.innerHTML += ' <span class="required">*</span>';
+      }
+      
+      formGroup.appendChild(label);
+      formGroup.appendChild(description);
+      formGroup.appendChild(input);
+      form.appendChild(formGroup);
+    });
+    
+    // Add buttons
+    const buttons = document.createElement('div');
+    buttons.className = 'modal-buttons';
+    
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'secondary-button';
+    cancelButton.textContent = 'Cancel';
+    cancelButton.id = 'cancelParametersBtn';
+    
+    const runWithParamsButton = document.createElement('button');
+    runWithParamsButton.type = 'submit';
+    runWithParamsButton.className = 'primary-button';
+    runWithParamsButton.textContent = 'Run Script';
+    
+    buttons.appendChild(cancelButton);
+    buttons.appendChild(runWithParamsButton);
+    form.appendChild(buttons);
+    
+    modalContent.appendChild(form);
+    this.parametersModal.appendChild(modalContent);
+    
+    // Show the modal
+    this.parametersModal.classList.add('active');
+    
+    // Add event listeners
+    document.getElementById('closeParametersBtn')?.addEventListener('click', () => {
+      this.parametersModal?.classList.remove('active');
+    });
+    
+    document.getElementById('cancelParametersBtn')?.addEventListener('click', () => {
+      this.parametersModal?.classList.remove('active');
+    });
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Collect parameter values
+      const parameters: Record<string, any> = {};
+      
+      script.parameters?.forEach(param => {
+        const input = document.getElementById(`param-${param.name}`) as HTMLInputElement;
+        
+        if (param.type === 'number') {
+          parameters[param.name] = input.value ? Number(input.value) : undefined;
+        } else if (param.type === 'boolean') {
+          parameters[param.name] = input.checked;
+        } else {
+          parameters[param.name] = input.value;
+        }
+      });
+      
+      // Close the modal
+      this.parametersModal?.classList.remove('active');
+      
+      // Update the run button
+      const originalText = runButton.textContent;
+      runButton.innerHTML = '<span class="status-indicator running"></span>Running...';
+      runButton.disabled = true;
+      
+      // Show logs container with initial message
+      this.showLogs([`Starting script execution for script ID: ${script.id} with parameters: ${JSON.stringify(parameters)}...`]);
+      
+      try {
+        const result = await this.runScript(script.id, parameters);
+        
+        // Update button to show success/error
+        if (result.success) {
+          runButton.innerHTML = '<span class="status-indicator success"></span>Success';
+        } else {
+          runButton.innerHTML = '<span class="status-indicator error"></span>Failed';
+        }
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          runButton.innerHTML = originalText || 'Run';
+          runButton.disabled = false;
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Error running script:', error);
+        this.showLogs([`Error running script: ${error instanceof Error ? error.message : String(error)}`], true);
+        
+        runButton.innerHTML = '<span class="status-indicator error"></span>Error';
+        setTimeout(() => {
+          runButton.innerHTML = originalText || 'Run';
+          runButton.disabled = false;
+        }, 2000);
+      }
+    });
   }
 }
 
