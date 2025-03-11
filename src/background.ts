@@ -19,6 +19,10 @@ import { getAvailableScripts, syncRemoteScripts, addScript, deleteScript } from 
 import { crx } from 'playwright-crx';
 import { recordingService } from './services/recording';
 
+// Store execution logs persistently
+let currentExecutionLogs: string[] = [];
+let isExecuting = false;
+
 // Sync scripts when extension is loaded
 chrome.runtime.onStartup.addListener(() => {
   syncRemoteScripts();
@@ -69,6 +73,10 @@ interface DeleteScriptMessage {
   scriptId: string;
 }
 
+interface GetExecutionStateMessage {
+  type: 'GET_EXECUTION_STATE';
+}
+
 type Message = 
   | ExecuteScriptMessage 
   | StartRecordingMessage 
@@ -77,7 +85,8 @@ type Message =
   | GetRecordingStateMessage
   | GetScriptCodeMessage
   | DiscardRecordingMessage
-  | DeleteScriptMessage;
+  | DeleteScriptMessage
+  | GetExecutionStateMessage;
 
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
@@ -125,10 +134,21 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
       sendResponse(success);
     });
     return true;
+  } else if (message.type === 'GET_EXECUTION_STATE') {
+    // Return current execution state and logs
+    sendResponse({
+      isExecuting,
+      logs: currentExecutionLogs
+    });
+    return true;
   }
 });
 
 async function executeScript(scriptId: string, parameters?: Record<string, any>): Promise<ScriptExecutionResult> {
+  // Reset logs at the start of execution
+  currentExecutionLogs = [];
+  isExecuting = true;
+  
   const logs: string[] = [];
   let crxApp = null;
   
@@ -148,10 +168,12 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
     }
     
     logs.push(`Executing script: ${script.name}`);
+    updateLogs(logs);
 
     // If the script has parameters, log them
     if (parameters && Object.keys(parameters).length > 0) {
       logs.push(`Using parameters: ${JSON.stringify(parameters)}`);
+      updateLogs(logs);
     }
 
     // Try to start CRX with retry logic
@@ -160,12 +182,14 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
       try {
         if (attempt > 0) {
           logs.push(`Retry attempt ${attempt}/${maxRetries}...`);
+          updateLogs(logs);
           // Add a delay between retries
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         crxApp = await crx.start();
         if (attempt > 0) {
           logs.push('Successfully started CRX instance');
+          updateLogs(logs);
         }
         break;
       } catch (error) {
@@ -174,6 +198,7 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
             throw new Error('Failed to start CRX after multiple attempts');
           }
           logs.push('Detected lingering CRX instance, waiting before retry...');
+          updateLogs(logs);
           continue;
         }
         throw error;
@@ -196,20 +221,19 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
       // Attach to the current tab
       page = await crxApp.attach(tab.id);
       logs.push('Attached to current tab');
+      updateLogs(logs);
     } else {
       // Create a new tab
       page = await crxApp.newPage();
       logs.push('Created new tab');
+      updateLogs(logs);
     }
 
     const ctx = {
       page,
       log: (msg: string) => {
         logs.push(msg);
-        chrome.runtime.sendMessage({
-          type: 'SCRIPT_LOG_UPDATE',
-          logs: [...logs]
-        });
+        updateLogs(logs);
       },
       parameters // Pass parameters to the script context
     };
@@ -218,10 +242,12 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
       // Execute the script with our context
       await script.run(ctx);
       logs.push(`Script ${script.name} completed successfully`);
+      updateLogs(logs);
       
       if (script.useCurrentTab && crxApp) {
         await crxApp.detach(page);
         logs.push('Detached from tab');
+        updateLogs(logs);
       }
       
       return {
@@ -231,11 +257,13 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logs.push(`Error: ${errorMessage}`);
+      updateLogs(logs);
       
       if (script.useCurrentTab && crxApp) {
         try {
           await crxApp.detach(page);
           logs.push('Detached from tab');
+          updateLogs(logs);
         } catch (detachError) {
           // Ignore detach errors
         }
@@ -256,10 +284,12 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
           console.error('Error closing CRX:', error);
         }
       }
+      isExecuting = false;
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logs.push(`Fatal error: ${errorMessage}`);
+    updateLogs(logs);
     
     if (crxApp) {
       try {
@@ -271,10 +301,21 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
       }
     }
     
+    isExecuting = false;
     return {
       success: false,
       error: errorMessage,
       logs
     };
   }
+}
+
+// Helper function to update logs and notify popup
+function updateLogs(logs: string[]) {
+  currentExecutionLogs = [...logs];
+  chrome.runtime.sendMessage({
+    type: 'SCRIPT_LOG_UPDATE',
+    logs: currentExecutionLogs,
+    isExecuting
+  });
 }

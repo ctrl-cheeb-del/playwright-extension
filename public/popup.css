@@ -428,7 +428,9 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .remote-badge {
-  background-color: #74c7ec;
+  background-color: var(--accent);
+  color: var(--bg-primary);
+
 }
 
 .parameters-badge {

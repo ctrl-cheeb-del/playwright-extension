@@ -28,6 +28,7 @@ class PopupUI {
   private isSyncing = false;
   private isRecording = false;
   private recordedActions: RecordedAction[] = [];
+  private isExecuting = false;
 
   constructor() {
     this.scriptsList = document.getElementById('scriptsList') as HTMLDivElement;
@@ -58,6 +59,9 @@ class PopupUI {
     
     // Always force sync when opening popup
     this.loadScripts(true);
+
+    // Check for existing execution state when popup opens
+    this.checkExecutionState();
   }
 
   private async loadScripts(forceSync = false) {
@@ -142,7 +146,7 @@ class PopupUI {
     this.logsContainer.classList.add('active');
     
     // If logs are complete and container is not active, show a notification effect
-    if (isComplete) {
+    if (isComplete && !this.isExecuting) {
       this.logsToggle.classList.add('pulse');
       setTimeout(() => this.logsToggle.classList.remove('pulse'), 1000);
     }
@@ -174,7 +178,8 @@ class PopupUI {
     // Listen for script execution updates
     chrome.runtime.onMessage.addListener((message) => {
       if (message.type === 'SCRIPT_LOG_UPDATE') {
-        this.showLogs(message.logs);
+        this.isExecuting = message.isExecuting;
+        this.showLogs(message.logs, !message.isExecuting);
       }
       return true;
     });
@@ -842,6 +847,23 @@ class PopupUI {
         }, 2000);
       }
     });
+  }
+
+  private async checkExecutionState() {
+    try {
+      const state = await chrome.runtime.sendMessage({
+        type: 'GET_EXECUTION_STATE'
+      });
+      
+      if (state) {
+        this.isExecuting = state.isExecuting;
+        if (state.logs && state.logs.length > 0) {
+          this.showLogs(state.logs, !state.isExecuting);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking execution state:', error);
+    }
   }
 }
 

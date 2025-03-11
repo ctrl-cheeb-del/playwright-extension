@@ -12,7 +12,7 @@ class RecordingService {
   private recordingTabUrl: string | null = null;
   private recordingInterval: NodeJS.Timeout | null = null;
   private lastUserInteractionTime: number = 0;
-  private navigationThreshold: number = 1000; // 1 second threshold
+  private navigationThreshold: number = 2000; // 2 second threshold
 
   // Helper function to properly escape strings for script generation
   private escapeString(str: string): string {
