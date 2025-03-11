@@ -19,7 +19,24 @@ class RecordingService {
 
     try {
       this.recordedActions = [];
-      this.crxApp = await crx.start();
+      
+      // Try to start CRX, handle already started error
+      try {
+        this.crxApp = await crx.start();
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('crxApplication is already started')) {
+          console.log('Detected lingering CRX instance, attempting to start new instance...');
+          // Just try to start again - the error means no instance actually exists
+          try {
+            this.crxApp = await crx.start();
+          } catch (startError) {
+            console.error('Failed to start CRX:', startError);
+            throw new Error('Failed to start recording: Could not start CRX instance');
+          }
+        } else {
+          throw error;
+        }
+      }
 
       if (useCurrentTab) {
         // Get the current active tab
@@ -93,14 +110,16 @@ class RecordingService {
         this.recordingInterval = null;
       }
       
-      if (this.page) {
-        await this.cleanup();
-      }
+      const actions = [...this.recordedActions];
+      
+      // Ensure cleanup is completed before proceeding
+      await this.cleanup();
+      
+      // Add a small delay to ensure CRX is fully cleaned up
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Send status update
       this.sendStatusUpdate();
-      
-      const actions = [...this.recordedActions];
       
       // If no actions were recorded or we're explicitly discarding,
       // clear the recorded actions
@@ -111,6 +130,12 @@ class RecordingService {
       return actions;
     } catch (error) {
       console.error('Error stopping recording:', error);
+      // Try cleanup one more time
+      try {
+        await this.cleanup();
+      } catch (cleanupError) {
+        console.error('Error during final cleanup:', cleanupError);
+      }
       return this.recordedActions;
     }
   }
@@ -126,12 +151,24 @@ class RecordingService {
       this.recordingInterval = null;
     }
     
-    if (this.page) {
+    try {
+      // Ensure cleanup is completed before proceeding
       await this.cleanup();
+      
+      // Add a small delay to ensure CRX is fully cleaned up
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Send status update
+      this.sendStatusUpdate();
+    } catch (error) {
+      console.error('Error during discard cleanup:', error);
+      // Try cleanup one more time
+      try {
+        await this.cleanup();
+      } catch (cleanupError) {
+        console.error('Error during final cleanup:', cleanupError);
+      }
     }
-    
-    // Send status update
-    this.sendStatusUpdate();
   }
 
   private async cleanup(): Promise<void> {
@@ -142,42 +179,57 @@ class RecordingService {
       }
       
       if (this.page) {
-        // Remove all listeners
-        this.page.removeAllListeners('framenavigated');
-        
-        // Remove page-level event listeners
-        await this.page.evaluate(() => {
-          // Remove any existing event listeners
-          const oldClickHandler = (window as any).__recordClickHandler;
-          const oldInputHandler = (window as any).__recordInputHandler;
-          const oldKeyDownHandler = (window as any).__recordKeyDownHandler;
-          const oldFocusHandler = (window as any).__recordFocusHandler;
+        try {
+          // Remove all listeners
+          this.page.removeAllListeners('framenavigated');
           
-          if (oldClickHandler) document.removeEventListener('click', oldClickHandler, true);
-          if (oldInputHandler) {
-            document.removeEventListener('change', oldInputHandler, true);
-            document.removeEventListener('input', oldInputHandler, true);
-          }
-          if (oldKeyDownHandler) document.removeEventListener('keydown', oldKeyDownHandler, true);
-          if (oldFocusHandler) document.removeEventListener('focus', oldFocusHandler, true);
-          
-          // Clear the stored handlers
-          (window as any).__recordClickHandler = null;
-          (window as any).__recordInputHandler = null;
-          (window as any).__recordKeyDownHandler = null;
-          (window as any).__recordFocusHandler = null;
-        }).catch(err => console.error('Error removing page event listeners:', err));
+          // Remove page-level event listeners
+          await this.page.evaluate(() => {
+            // Remove any existing event listeners
+            const oldClickHandler = (window as any).__recordClickHandler;
+            const oldInputHandler = (window as any).__recordInputHandler;
+            const oldKeyDownHandler = (window as any).__recordKeyDownHandler;
+            const oldFocusHandler = (window as any).__recordFocusHandler;
+            
+            if (oldClickHandler) document.removeEventListener('click', oldClickHandler, true);
+            if (oldInputHandler) {
+              document.removeEventListener('change', oldInputHandler, true);
+              document.removeEventListener('input', oldInputHandler, true);
+            }
+            if (oldKeyDownHandler) document.removeEventListener('keydown', oldKeyDownHandler, true);
+            if (oldFocusHandler) document.removeEventListener('focus', oldFocusHandler, true);
+            
+            // Clear the stored handlers
+            (window as any).__recordClickHandler = null;
+            (window as any).__recordInputHandler = null;
+            (window as any).__recordKeyDownHandler = null;
+            (window as any).__recordFocusHandler = null;
+          }).catch(err => console.error('Error removing page event listeners:', err));
+        } catch (evalError) {
+          console.error('Error during page cleanup:', evalError);
+        }
         
         if (this.tabId) {
-          await this.crxApp.detach(this.page);
+          try {
+            await this.crxApp.detach(this.page);
+          } catch (detachError) {
+            console.error('Error detaching from page:', detachError);
+          }
         }
       }
       
       if (this.crxApp) {
-        await this.crxApp.close();
+        try {
+          await this.crxApp.close();
+          // Add a small delay after closing to ensure it's fully cleaned up
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (closeError) {
+          console.error('Error closing CRX:', closeError);
+        }
       }
     } catch (error) {
       console.error('Error during cleanup:', error);
+      throw error; // Re-throw to handle in calling function
     } finally {
       this.page = null;
       this.crxApp = null;

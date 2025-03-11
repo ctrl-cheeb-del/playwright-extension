@@ -129,6 +129,7 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
 
 async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
   const logs: string[] = [];
+  let crxApp = null;
   
   try {
     // Get all scripts to ensure we have the latest
@@ -147,7 +148,36 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
     
     logs.push(`Executing script: ${script.name}`);
 
-    const crxApp = await crx.start();
+    // Try to start CRX with retry logic
+    const maxRetries = 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          logs.push(`Retry attempt ${attempt}/${maxRetries}...`);
+          // Add a delay between retries
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        crxApp = await crx.start();
+        if (attempt > 0) {
+          logs.push('Successfully started CRX instance');
+        }
+        break;
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('crxApplication is already started')) {
+          if (attempt === maxRetries) {
+            throw new Error('Failed to start CRX after multiple attempts');
+          }
+          logs.push('Detected lingering CRX instance, waiting before retry...');
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    // Verify crxApp was initialized
+    if (!crxApp) {
+      throw new Error('Failed to initialize CRX application');
+    }
     
     let page;
     if (script.useCurrentTab) {
@@ -182,7 +212,7 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
       await script.run(ctx);
       logs.push(`Script ${script.name} completed successfully`);
       
-      if (script.useCurrentTab) {
+      if (script.useCurrentTab && crxApp) {
         await crxApp.detach(page);
         logs.push('Detached from tab');
       }
@@ -195,7 +225,7 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logs.push(`Error: ${errorMessage}`);
       
-      if (script.useCurrentTab) {
+      if (script.useCurrentTab && crxApp) {
         try {
           await crxApp.detach(page);
           logs.push('Detached from tab');
@@ -210,11 +240,29 @@ async function executeScript(scriptId: string): Promise<ScriptExecutionResult> {
         logs
       };
     } finally {
-      await crxApp.close();
+      if (crxApp) {
+        try {
+          await crxApp.close();
+          // Add a small delay after closing to ensure it's fully cleaned up
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error('Error closing CRX:', error);
+        }
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logs.push(`Fatal error: ${errorMessage}`);
+    
+    if (crxApp) {
+      try {
+        await crxApp.close();
+        // Add a small delay after closing to ensure it's fully cleaned up
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (closeError) {
+        console.error('Error closing CRX during error handling:', closeError);
+      }
+    }
     
     return {
       success: false,
