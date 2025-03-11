@@ -11,6 +11,39 @@ class RecordingService {
   private tabId: number | null = null;
   private recordingTabUrl: string | null = null;
   private recordingInterval: NodeJS.Timeout | null = null;
+  private lastUserInteractionTime: number = 0;
+  private navigationThreshold: number = 1000; // 1 second threshold
+
+  // Helper function to properly escape strings for script generation
+  private escapeString(str: string): string {
+    if (!str) return '';
+    
+    // Replace backslashes first to avoid double escaping
+    return str
+      .replace(/\\/g, '\\\\')      // Escape backslashes
+      .replace(/'/g, "\\'")        // Escape single quotes
+      .replace(/\n/g, '\\n')       // Escape newlines
+      .replace(/\r/g, '\\r')       // Escape carriage returns
+      .replace(/\t/g, '\\t')       // Escape tabs
+      .replace(/\f/g, '\\f')       // Escape form feeds
+      .replace(/\v/g, '\\v')       // Escape vertical tabs
+      .replace(/\0/g, '\\0');      // Escape null characters
+  }
+
+  // Helper function to properly escape selectors for script generation
+  private escapeSelector(selector: string): string {
+    if (!selector) return '';
+    
+    // If it's a complex selector (getByLabel, getByRole), don't escape it
+    if (selector.startsWith('getByLabel(') || selector.startsWith('getByRole(')) {
+      return selector;
+    }
+    
+    // For CSS selectors, escape any quotes
+    return selector
+      .replace(/\\/g, '\\\\')  // Escape backslashes
+      .replace(/'/g, "\\'");   // Escape single quotes
+  }
 
   async startRecording(useCurrentTab: boolean): Promise<boolean> {
     if (this.isRecording) {
@@ -103,6 +136,7 @@ class RecordingService {
 
     try {
       this.isRecording = false;
+      this.lastUserInteractionTime = 0;
       
       // Clear the interval
       if (this.recordingInterval) {
@@ -144,6 +178,7 @@ class RecordingService {
   async discardRecording(): Promise<void> {
     this.isRecording = false;
     this.recordedActions = [];
+    this.lastUserInteractionTime = 0;
     
     // Clear the interval
     if (this.recordingInterval) {
@@ -190,6 +225,9 @@ class RecordingService {
             const oldInputHandler = (window as any).__recordInputHandler;
             const oldKeyDownHandler = (window as any).__recordKeyDownHandler;
             const oldFocusHandler = (window as any).__recordFocusHandler;
+            const oldPasteHandler = (window as any).__recordPasteHandler;
+            const oldCopyHandler = (window as any).__recordCopyHandler;
+            const oldSubmitHandler = (window as any).__recordSubmitHandler;
             
             if (oldClickHandler) document.removeEventListener('click', oldClickHandler, true);
             if (oldInputHandler) {
@@ -198,12 +236,18 @@ class RecordingService {
             }
             if (oldKeyDownHandler) document.removeEventListener('keydown', oldKeyDownHandler, true);
             if (oldFocusHandler) document.removeEventListener('focus', oldFocusHandler, true);
+            if (oldPasteHandler) document.removeEventListener('paste', oldPasteHandler, true);
+            if (oldCopyHandler) document.removeEventListener('copy', oldCopyHandler, true);
+            if (oldSubmitHandler) document.removeEventListener('submit', oldSubmitHandler, true);
             
             // Clear the stored handlers
             (window as any).__recordClickHandler = null;
             (window as any).__recordInputHandler = null;
             (window as any).__recordKeyDownHandler = null;
             (window as any).__recordFocusHandler = null;
+            (window as any).__recordPasteHandler = null;
+            (window as any).__recordCopyHandler = null;
+            (window as any).__recordSubmitHandler = null;
           }).catch(err => console.error('Error removing page event listeners:', err));
         } catch (evalError) {
           console.error('Error during page cleanup:', evalError);
@@ -251,6 +295,9 @@ class RecordingService {
       const oldInputHandler = (window as any).__recordInputHandler;
       const oldKeyDownHandler = (window as any).__recordKeyDownHandler;
       const oldFocusHandler = (window as any).__recordFocusHandler;
+      const oldPasteHandler = (window as any).__recordPasteHandler;
+      const oldCopyHandler = (window as any).__recordCopyHandler;
+      const oldSubmitHandler = (window as any).__recordSubmitHandler;
       
       if (oldClickHandler) document.removeEventListener('click', oldClickHandler, true);
       if (oldInputHandler) {
@@ -259,6 +306,9 @@ class RecordingService {
       }
       if (oldKeyDownHandler) document.removeEventListener('keydown', oldKeyDownHandler, true);
       if (oldFocusHandler) document.removeEventListener('focus', oldFocusHandler, true);
+      if (oldPasteHandler) document.removeEventListener('paste', oldPasteHandler, true);
+      if (oldCopyHandler) document.removeEventListener('copy', oldCopyHandler, true);
+      if (oldSubmitHandler) document.removeEventListener('submit', oldSubmitHandler, true);
       
       // Record click events
       const recordClick = (event: MouseEvent) => {
@@ -289,6 +339,11 @@ class RecordingService {
         const target = event.target as HTMLInputElement;
         if (!target) return;
         
+        // Skip if this is a paste event (we'll handle it separately)
+        if (event.type === 'input' && (event as InputEvent).inputType === 'insertFromPaste') {
+          return;
+        }
+        
         // Get the best selector for the element
         let selector = generateBestSelector(target);
 
@@ -302,8 +357,59 @@ class RecordingService {
             timestamp: Date.now()
           });
           
+          // Update the last known value
           lastInputValue = target.value;
         }
+      };
+      
+      // Record paste events directly
+      const recordPaste = (event: ClipboardEvent) => {
+        if (!focusedElement) return;
+        
+        const target = event.target as HTMLElement;
+        if (!target) return;
+        
+        let selector = generateBestSelector(target);
+        
+        // @ts-ignore
+        window.recordAction({
+          type: 'paste',
+          selector,
+          timestamp: Date.now()
+        });
+        
+        // Prevent recording the pasted text as a separate fill action
+        if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+          setTimeout(() => {
+            lastInputValue = target.value;
+          }, 100);
+        }
+      };
+      
+      // Record copy events directly
+      const recordCopy = (event: ClipboardEvent) => {
+        if (!focusedElement) return;
+        
+        const target = event.target as HTMLElement;
+        if (!target) return;
+        
+        let selector = generateBestSelector(target);
+        
+        // @ts-ignore
+        window.recordAction({
+          type: 'copy',
+          selector,
+          timestamp: Date.now()
+        });
+      };
+      
+      // Record form submissions
+      const recordSubmit = () => {
+        // @ts-ignore
+        window.recordAction({
+          type: 'submit',
+          timestamp: Date.now()
+        });
       };
       
       // Generate the best possible selector for an element
@@ -437,6 +543,20 @@ class RecordingService {
 
       // Record keyboard events
       const recordKeyDown = (event: KeyboardEvent) => {
+        // Detect clipboard paste events (Cmd+V on Mac, Ctrl+V on Windows/Linux)
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v') {
+          // We'll handle this with the paste event listener instead
+          // This prevents duplicate recording
+          return;
+        }
+        
+        // Detect clipboard copy events (Cmd+C on Mac, Ctrl+C on Windows/Linux)
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
+          // We'll handle this with the copy event listener instead
+          // This prevents duplicate recording
+          return;
+        }
+        
         // Only record Enter, Tab, Escape and arrow keys as separate actions
         const specialKeys = ['Enter', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
         
@@ -459,18 +579,24 @@ class RecordingService {
         focusedElement = event.target as HTMLElement;
       };
 
-      // Store handlers on window so we can remove them later
+      // Add event listeners
+      document.addEventListener('click', recordClick, true);
+      document.addEventListener('change', recordInput, true);
+      document.addEventListener('input', recordInput, true);
+      document.addEventListener('keydown', recordKeyDown, true);
+      document.addEventListener('focus', recordFocus, true);
+      document.addEventListener('paste', recordPaste, true);
+      document.addEventListener('copy', recordCopy, true);
+      document.addEventListener('submit', recordSubmit, true);
+      
+      // Store references to event handlers for later cleanup
       (window as any).__recordClickHandler = recordClick;
       (window as any).__recordInputHandler = recordInput;
       (window as any).__recordKeyDownHandler = recordKeyDown;
       (window as any).__recordFocusHandler = recordFocus;
-
-      // Add event listeners
-      document.addEventListener('click', recordClick, true);
-      document.addEventListener('change', recordInput, true);
-      document.addEventListener('input', recordInput, true); // Capture input events too
-      document.addEventListener('keydown', recordKeyDown, true);
-      document.addEventListener('focus', recordFocus, true);
+      (window as any).__recordPasteHandler = recordPaste;
+      (window as any).__recordCopyHandler = recordCopy;
+      (window as any).__recordSubmitHandler = recordSubmit;
     });
   }
 
@@ -495,25 +621,34 @@ class RecordingService {
           const timestamp = Date.now();
           const timeSincePrevious = lastAction ? timestamp - lastAction.timestamp : 0;
           
-          // Record the navigation action
-          const navigationAction: RecordedAction = {
-            type: 'goto',
-            value: newUrl,
-            timestamp,
-            timeSincePrevious
-          };
+          // Check if this navigation happened shortly after a user interaction
+          const timeSinceLastInteraction = timestamp - this.lastUserInteractionTime;
           
-          this.recordedActions.push(navigationAction);
-          lastAction = navigationAction;
+          // Only record the navigation if it didn't happen right after a user interaction
+          // or if it's been more than our threshold since the last interaction
+          if (this.lastUserInteractionTime === 0 || timeSinceLastInteraction > this.navigationThreshold) {
+            // Record the navigation action
+            const navigationAction: RecordedAction = {
+              type: 'goto',
+              value: newUrl,
+              timestamp,
+              timeSincePrevious
+            };
+            
+            this.recordedActions.push(navigationAction);
+            lastAction = navigationAction;
+            
+            // Send status update
+            this.sendStatusUpdate();
+          } else {
+            console.log(`Navigation to ${newUrl} occurred ${timeSinceLastInteraction}ms after user interaction - skipping recording`);
+          }
           
           // Update current URL
           currentUrl = newUrl;
           
           // Update the recording tab URL
           this.recordingTabUrl = newUrl;
-          
-          // Send status update
-          this.sendStatusUpdate();
           
           // Re-attach event listeners on the new page
           await this.injectRecordingScript();
@@ -534,6 +669,11 @@ class RecordingService {
         // Calculate time since previous action
         if (lastAction) {
           action.timeSincePrevious = action.timestamp - lastAction.timestamp;
+        }
+        
+        // Update the last user interaction time for click, press, and fill actions
+        if (action.type === 'click' || action.type === 'press' || action.type === 'fill') {
+          this.lastUserInteractionTime = action.timestamp;
         }
         
         this.recordedActions.push(action);
@@ -588,17 +728,63 @@ class RecordingService {
   generateScriptString(name: string, description: string): string {
     const actions = [...this.recordedActions];
     
+    // Check if there are any paste or copy actions in the recorded actions
+    const hasPasteActions = actions.some(action => action.type === 'paste');
+    const hasCopyActions = actions.some(action => action.type === 'copy');
+    const hasClipboardActions = hasPasteActions || hasCopyActions;
+    
     // Create a script that can be directly executed by the interpreter
     // The interpreter expects plain JavaScript code, not a module with imports/exports
     let scriptCode = `
-// Script: ${name}
-// Description: ${description}
+// Script: ${this.escapeString(name)}
+// Description: ${this.escapeString(description)}
 // Generated: ${new Date().toLocaleString()}
 
 const { page, log } = ctx;
 
 log('Starting script execution');
 `;
+
+    // Add clipboard helper functions if needed
+    if (hasClipboardActions) {
+      scriptCode += `
+// Use a cross-platform approach for clipboard operations
+`;
+
+      if (hasPasteActions) {
+        scriptCode += `
+// Helper function for paste operations
+const tryPaste = async (selector) => {
+  try {
+    // Try Mac shortcut first
+    await page.focus(selector);
+    await page.keyboard.press('Meta+V');
+  } catch (error) {
+    // If that fails, try Windows/Linux shortcut
+    await page.focus(selector);
+    await page.keyboard.press('Control+V');
+  }
+};
+`;
+      }
+
+      if (hasCopyActions) {
+        scriptCode += `
+// Helper function for copy operations
+const tryCopy = async (selector) => {
+  try {
+    // Try Mac shortcut first
+    await page.focus(selector);
+    await page.keyboard.press('Meta+C');
+  } catch (error) {
+    // If that fails, try Windows/Linux shortcut
+    await page.focus(selector);
+    await page.keyboard.press('Control+C');
+  }
+};
+`;
+      }
+    }
 
     // Add each action with appropriate logging and timing
     actions.forEach((action) => {
@@ -620,7 +806,7 @@ log('Starting script execution');
           } else if (action.selector.startsWith('getByRole(')) {
             scriptCode += `await page.${action.selector}.click();\n\n`;
           } else {
-            scriptCode += `await page.click('${action.selector}');\n\n`;
+            scriptCode += `await page.click('${this.escapeSelector(action.selector)}');\n\n`;
           }
         } else {
           scriptCode += `// Warning: No selector available for this click action\n\n`;
@@ -628,24 +814,71 @@ log('Starting script execution');
       } else if (action.type === 'fill' && action.value) {
         scriptCode += `log('Filling ${action.selector || 'element'} with text...');\n`;
         
-        // Handle different selector formats
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `await page.${action.selector}.fill('${action.value}');\n\n`;
+            scriptCode += `await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `await page.${action.selector}.fill('${action.value}');\n\n`;
+            scriptCode += `await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
           } else {
-            scriptCode += `await page.fill('${action.selector}', '${action.value}');\n\n`;
+            scriptCode += `await page.fill('${this.escapeSelector(action.selector)}', '${this.escapeString(action.value)}');\n\n`;
           }
         } else {
           scriptCode += `// Warning: No selector available for this fill action\n\n`;
         }
+      } else if (action.type === 'paste') {
+        scriptCode += `log('Pasting clipboard content into ${action.selector || 'element'}...');\n`;
+        
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `await page.${action.selector}.focus();\n`;
+            scriptCode += `try {\n`;
+            scriptCode += `  await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `} catch (error) {\n`;
+            scriptCode += `  await page.keyboard.press('Control+V');\n`;
+            scriptCode += `}\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `await page.${action.selector}.focus();\n`;
+            scriptCode += `try {\n`;
+            scriptCode += `  await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `} catch (error) {\n`;
+            scriptCode += `  await page.keyboard.press('Control+V');\n`;
+            scriptCode += `}\n\n`;
+          } else {
+            scriptCode += `await tryPaste('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `// Warning: No selector available for this paste action\n\n`;
+        }
+      } else if (action.type === 'copy') {
+        scriptCode += `log('Copying content from ${action.selector || 'element'}...');\n`;
+        
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `await page.${action.selector}.focus();\n`;
+            scriptCode += `try {\n`;
+            scriptCode += `  await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `} catch (error) {\n`;
+            scriptCode += `  await page.keyboard.press('Control+C');\n`;
+            scriptCode += `}\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `await page.${action.selector}.focus();\n`;
+            scriptCode += `try {\n`;
+            scriptCode += `  await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `} catch (error) {\n`;
+            scriptCode += `  await page.keyboard.press('Control+C');\n`;
+            scriptCode += `}\n\n`;
+          } else {
+            scriptCode += `await tryCopy('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `// Warning: No selector available for this copy action\n\n`;
+        }
       } else if (action.type === 'press' && action.value) {
         scriptCode += `log('Pressing ${action.value} key...');\n`;
-        scriptCode += `await page.keyboard.press('${action.value}');\n\n`;
+        scriptCode += `await page.keyboard.press('${this.escapeString(action.value)}');\n\n`;
       } else if (action.type === 'goto' && action.value) {
         scriptCode += `log('Navigating to ${action.value}...');\n`;
-        scriptCode += `await page.goto('${action.value}');\n\n`;
+        scriptCode += `await page.goto('${this.escapeString(action.value)}');\n\n`;
       }
     });
 
@@ -658,18 +891,63 @@ log('Starting script execution');
   generateCompleteScriptString(name: string, description: string): string {
     const actions = [...this.recordedActions];
     
+    // Check if there are any paste or copy actions in the recorded actions
+    const hasPasteActions = actions.some(action => action.type === 'paste');
+    const hasCopyActions = actions.some(action => action.type === 'copy');
+    const hasClipboardActions = hasPasteActions || hasCopyActions;
+    
     // Create a formatted script in the same style as github.ts
     let scriptCode = `import type { ScriptDefinition } from '../core/types';
 
 const script: ScriptDefinition = {
   id: '${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}',
-  name: '${name}',
-  description: '${description}',
+  name: '${this.escapeString(name)}',
+  description: '${this.escapeString(description)}',
   useCurrentTab: true,
   async run(ctx) {
     const { page, log } = ctx;
+    `;
     
+    // Add platform detection code at the beginning if there are paste actions
+    if (hasClipboardActions) {
+      scriptCode += `
+    // Use a cross-platform approach for clipboard operations
 `;
+
+      if (hasPasteActions) {
+        scriptCode += `
+    // Helper function for paste operations
+    const tryPaste = async (selector) => {
+      try {
+        // Try Mac shortcut first
+        await page.focus(selector);
+        await page.keyboard.press('Meta+V');
+      } catch (error) {
+        // If that fails, try Windows/Linux shortcut
+        await page.focus(selector);
+        await page.keyboard.press('Control+V');
+      }
+    };
+`;
+      }
+
+      if (hasCopyActions) {
+        scriptCode += `
+    // Helper function for copy operations
+    const tryCopy = async (selector) => {
+      try {
+        // Try Mac shortcut first
+        await page.focus(selector);
+        await page.keyboard.press('Meta+C');
+      } catch (error) {
+        // If that fails, try Windows/Linux shortcut
+        await page.focus(selector);
+        await page.keyboard.press('Control+C');
+      }
+    };
+`;
+      }
+    }
 
     // Add each action with appropriate logging and timing
     actions.forEach((action) => {
@@ -691,7 +969,7 @@ const script: ScriptDefinition = {
           } else if (action.selector.startsWith('getByRole(')) {
             scriptCode += `    await page.${action.selector}.click();\n\n`;
           } else {
-            scriptCode += `    await page.click('${action.selector}');\n\n`;
+            scriptCode += `    await page.click('${this.escapeSelector(action.selector)}');\n\n`;
           }
         } else {
           scriptCode += `    // Warning: No selector available for this click action\n\n`;
@@ -699,24 +977,71 @@ const script: ScriptDefinition = {
       } else if (action.type === 'fill' && action.value) {
         scriptCode += `    log('Filling ${action.selector || 'element'} with text...');\n`;
         
-        // Handle different selector formats
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `    await page.${action.selector}.fill('${action.value}');\n\n`;
+            scriptCode += `    await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `    await page.${action.selector}.fill('${action.value}');\n\n`;
+            scriptCode += `    await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
           } else {
-            scriptCode += `    await page.fill('${action.selector}', '${action.value}');\n\n`;
+            scriptCode += `    await page.fill('${this.escapeSelector(action.selector)}', '${this.escapeString(action.value)}');\n\n`;
           }
         } else {
           scriptCode += `    // Warning: No selector available for this fill action\n\n`;
         }
+      } else if (action.type === 'paste') {
+        scriptCode += `    log('Pasting clipboard content into ${action.selector || 'element'}...');\n`;
+        
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `    await page.${action.selector}.focus();\n`;
+            scriptCode += `    try {\n`;
+            scriptCode += `      await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `    } catch (error) {\n`;
+            scriptCode += `      await page.keyboard.press('Control+V');\n`;
+            scriptCode += `    }\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `    await page.${action.selector}.focus();\n`;
+            scriptCode += `    try {\n`;
+            scriptCode += `      await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `    } catch (error) {\n`;
+            scriptCode += `      await page.keyboard.press('Control+V');\n`;
+            scriptCode += `    }\n\n`;
+          } else {
+            scriptCode += `    await tryPaste('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `    // Warning: No selector available for this paste action\n\n`;
+        }
+      } else if (action.type === 'copy') {
+        scriptCode += `    log('Copying content from ${action.selector || 'element'}...');\n`;
+        
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `    await page.${action.selector}.focus();\n`;
+            scriptCode += `    try {\n`;
+            scriptCode += `      await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `    } catch (error) {\n`;
+            scriptCode += `      await page.keyboard.press('Control+C');\n`;
+            scriptCode += `    }\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `    await page.${action.selector}.focus();\n`;
+            scriptCode += `    try {\n`;
+            scriptCode += `      await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `    } catch (error) {\n`;
+            scriptCode += `      await page.keyboard.press('Control+C');\n`;
+            scriptCode += `    }\n\n`;
+          } else {
+            scriptCode += `    await tryCopy('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `    // Warning: No selector available for this copy action\n\n`;
+        }
       } else if (action.type === 'press' && action.value) {
         scriptCode += `    log('Pressing ${action.value} key...');\n`;
-        scriptCode += `    await page.keyboard.press('${action.value}');\n\n`;
+        scriptCode += `    await page.keyboard.press('${this.escapeString(action.value)}');\n\n`;
       } else if (action.type === 'goto' && action.value) {
         scriptCode += `    log('Navigating to ${action.value}...');\n`;
-        scriptCode += `    await page.goto('${action.value}');\n\n`;
+        scriptCode += `    await page.goto('${this.escapeString(action.value)}');\n\n`;
       }
     });
 
