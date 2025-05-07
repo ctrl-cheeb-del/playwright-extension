@@ -438,7 +438,7 @@ class PopupUI {
       this.recordingStatus.style.display = 'none';
       this.saveRecordingForm.style.display = 'block';
       this.recordingModalTitle.textContent = 'Recording Complete';
-      this.downloadTraceBtn.style.display = 'inline-block';
+      this.downloadTraceBtn.style.display = 'block';
     } else {
       // Show options
       this.recordingOptions.style.display = 'block';

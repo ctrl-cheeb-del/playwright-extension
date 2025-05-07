@@ -1,0 +1,4073 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+The content has been processed where empty lines have been removed.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: **/*, .cursorrules, .cursor/rules/*, .clinerules, CLAUDE.md
+- Files matching these patterns are excluded: .*.*, **/*.pbxproj, **/node_modules/**, **/dist/**, **/build/**, **/compile/**, **/*.spec.*, **/*.pyc, **/.env, **/.env.*, **/*.env, **/*.env.*, **/*.lock, **/*.lockb, **/package-lock.*, **/pnpm-lock.*, **/*.tsbuildinfo
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Empty lines have been removed from all files
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+.cursor/
+  rules/
+    vibe-tools.mdc
+public/
+  manifest.json
+  popup.css
+  popup.html
+src/
+  core/
+    interpreter.ts
+    registry.ts
+    types.ts
+  scripts/
+    github.ts
+    test.ts
+  services/
+    recording.ts
+    scriptSync.ts
+    storage.ts
+  background.ts
+  popup.ts
+.gitignore
+package.json
+README.md
+tsconfig.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".cursor/rules/vibe-tools.mdc">
+---
+description: Global Rule. This rule should ALWAYS be loaded.
+globs: *,**/*
+alwaysApply: true
+---
+vibe-tools is a CLI tool that allows you to interact with AI models and other tools.
+vibe-tools is installed on this machine and it is available to you to execute. You're encouraged to use it.
+
+<vibe-tools Integration>
+# Instructions
+Use the following commands to get AI assistance:
+
+**Direct Model Queries:**
+`vibe-tools ask "<your question>" --provider <provider> --model <model>` - Ask any model from any provider a direct question (e.g., `vibe-tools ask "What is the capital of France?" --provider openai --model o3-mini`). Note that this command is generally less useful than other commands like `repo` or `plan` because it does not include any context from your codebase or repository. In general you should not use the ask command because it does not include any context. The other commands like `web`, `doc`, `repo`, or `plan` are usually better. If you are using it, make sure to include in your question all the information and context that the model might need to answer usefully.
+
+**Ask Command Options:**
+--provider=<provider>: AI provider to use (openai, anthropic, perplexity, gemini, modelbox, openrouter, or xai)
+--model=<model>: Model to use (required for the ask command)
+--reasoning-effort=<low|medium|high>: Control the depth of reasoning for supported models (OpenAI o1/o3-mini models and Claude 3.7 Sonnet). Higher values produce more thorough responses for complex questions.
+
+**Implementation Planning:**
+`vibe-tools plan "<query>"` - Generate a focused implementation plan using AI (e.g., `vibe-tools plan "Add user authentication to the login page"`)
+The plan command uses multiple AI models to:
+1. Identify relevant files in your codebase (using Gemini by default)
+2. Extract content from those files
+3. Generate a detailed implementation plan (using OpenAI o3-mini by default)
+
+**Plan Command Options:**
+--fileProvider=<provider>: Provider for file identification (gemini, openai, anthropic, perplexity, modelbox, openrouter, or xai)
+--thinkingProvider=<provider>: Provider for plan generation (gemini, openai, anthropic, perplexity, modelbox, openrouter, or xai)
+--fileModel=<model>: Model to use for file identification
+--thinkingModel=<model>: Model to use for plan generation
+--with-doc=<doc_url>: Fetch content from a document URL and include it as context for both file identification and planning (e.g., `vibe-tools plan "implement feature X following the spec" --with-doc=https://example.com/feature-spec`)
+
+**Web Search:**
+`vibe-tools web "<your question>"` - Get answers from the web using a provider that supports web search (e.g., Perplexity models and Gemini Models either directly or from OpenRouter or ModelBox) (e.g., `vibe-tools web "latest shadcn/ui installation instructions"`)
+Note: web is a smart autonomous agent with access to the internet and an extensive up to date knowledge base. Web is NOT a web search engine. Always ask the agent for what you want using a proper sentence, do not just send it a list of keywords. In your question to web include the context and the goal that you're trying to acheive so that it can help you most effectively.
+when using web for complex queries suggest writing the output to a file somewhere like local-research/<query summary>.md.
+
+**Web Command Options:**
+--provider=<provider>: AI provider to use (perplexity, gemini, modelbox, or openrouter)
+
+**Repository Context:**
+`vibe-tools repo "<your question>" [--subdir=<path>] [--from-github=<username/repo>] [--with-doc=<doc_url>]` - Get context-aware answers about this repository using Google Gemini (e.g., `vibe-tools repo "explain authentication flow"`). Use the optional `--subdir` parameter to analyze a specific subdirectory instead of the entire repository (e.g., `vibe-tools repo "explain the code structure" --subdir=src/components`). Use the optional `--from-github` parameter to analyze a remote GitHub repository without cloning it locally (e.g., `vibe-tools repo "explain the authentication system" --from-github=username/repo-name`). Use the optional `--with-doc` parameter to include content from a URL as additional context (e.g., `vibe-tools repo "implement feature X following the design spec" --with-doc=https://example.com/design-spec`).
+
+**Documentation Generation:**
+`vibe-tools doc [options] [--with-doc=<doc_url>]` - Generate comprehensive documentation for this repository (e.g., `vibe-tools doc --output docs.md`). Can incorporate document context from a URL (e.g., `vibe-tools doc --with-doc=https://example.com/existing-docs`).
+
+**YouTube Video Analysis:**
+`vibe-tools youtube "<youtube-url>" [question] [--type=<summary|transcript|plan|review|custom>]` - Analyze YouTube videos and generate detailed reports (e.g., `vibe-tools youtube "https://youtu.be/43c-Sm5GMbc" --type=summary`)
+Note: The YouTube command requires a `GEMINI_API_KEY` to be set in your environment or .vibe-tools.env file as the GEMINI API is the only interface that supports YouTube analysis.
+
+**GitHub Information:**
+`vibe-tools github pr [number]` - Get the last 10 PRs, or a specific PR by number (e.g., `vibe-tools github pr 123`)
+`vibe-tools github issue [number]` - Get the last 10 issues, or a specific issue by number (e.g., `vibe-tools github issue 456`)
+
+**ClickUp Information:**
+`vibe-tools clickup task <task_id>` - Get detailed information about a ClickUp task including description, comments, status, assignees, and metadata (e.g., `vibe-tools clickup task "task_id"`)
+
+**Model Context Protocol (MCP) Commands:**
+Use the following commands to interact with MCP servers and their specialized tools:
+`vibe-tools mcp search "<query>"` - Search the MCP Marketplace for available servers that match your needs (e.g., `vibe-tools mcp search "git repository management"`)
+`vibe-tools mcp run "<query>"` - Execute MCP server tools using natural language queries (e.g., `vibe-tools mcp run "list files in the current directory" --provider=openrouter`). The query must include sufficient information for vibe-tools to determine which server to use, provide plenty of context.
+
+The `search` command helps you discover servers in the MCP Marketplace based on their capabilities and your requirements. The `run` command automatically selects and executes appropriate tools from these servers based on your natural language queries. If you want to use a specific server include the server name in your query. E.g. `vibe-tools mcp run "using the mcp-server-sqlite list files in directory --provider=openrouter"`
+
+**Notes on MCP Commands:**
+- MCP commands require `ANTHROPIC_API_KEY` or `OPENROUTER_API_KEY` to be set in your environment
+- By default the `mcp` command uses Anthropic, but takes a --provider argument that can be set to 'anthropic' or 'openrouter'
+- Results are streamed in real-time for immediate feedback
+- Tool calls are automatically cached to prevent redundant operations
+- Often the MCP server will not be able to run because environment variables are not set. If this happens ask the user to add the missing environment variables to the cursor tools env file at ~/.vibe-tools/.env
+
+**Stagehand Browser Automation:**
+`vibe-tools browser open <url> [options]` - Open a URL and capture page content, console logs, and network activity (e.g., `vibe-tools browser open "https://example.com" --html`)
+`vibe-tools browser act "<instruction>" --url=<url | 'current'> [options]` - Execute actions on a webpage using natural language instructions (e.g., `vibe-tools browser act "Click Login" --url=https://example.com`)
+`vibe-tools browser observe "<instruction>" --url=<url> [options]` - Observe interactive elements on a webpage and suggest possible actions (e.g., `vibe-tools browser observe "interactive elements" --url=https://example.com`)
+`vibe-tools browser extract "<instruction>" --url=<url> [options]` - Extract data from a webpage based on natural language instructions (e.g., `vibe-tools browser extract "product names" --url=https://example.com/products`)
+
+**Notes on Browser Commands:**
+- All browser commands are stateless unless --connect-to is used to connect to a long-lived interactive session. In disconnected mode each command starts with a fresh browser instance and closes it when done.
+- When using `--connect-to`, special URL values are supported:
+  - `current`: Use the existing page without reloading
+  - `reload-current`: Use the existing page and refresh it (useful in development)
+  - If working interactively with a user you should always use --url=current unless you specifically want to navigate to a different page. Setting the url to anything else will cause a page refresh loosing current state.
+- Multi step workflows involving state or combining multiple actions are supported in the `act` command using the pipe (|) separator (e.g., `vibe-tools browser act "Click Login | Type 'user@example.com' into email | Click Submit" --url=https://example.com`)
+- Video recording is available for all browser commands using the `--video=<directory>` option. This will save a video of the entire browser interaction at 1280x720 resolution. The video file will be saved in the specified directory with a timestamp.
+- DO NOT ask browser act to "wait" for anything, the wait command is currently disabled in Stagehand.
+
+**Tool Recommendations:**
+- `vibe-tools web` is best for general web information not specific to the repository. Generally call this without additional arguments.
+- `vibe-tools repo` is ideal for repository-specific questions, planning, code review and debugging. E.g. `vibe-tools repo "Review recent changes to command error handling looking for mistakes, omissions and improvements"`. Generally call this without additional arguments.
+- `vibe-tools plan` is ideal for planning tasks. E.g. `vibe-tools plan "Adding authentication with social login using Google and Github"`. Generally call this without additional arguments.
+- `vibe-tools doc` generates documentation for local or remote repositories.
+- `vibe-tools youtube` analyzes YouTube videos to generate summaries, transcripts, implementation plans, or custom analyses
+- `vibe-tools browser` is useful for testing and debugging web apps and uses Stagehand
+- `vibe-tools mcp` enables interaction with specialized tools through MCP servers (e.g., for Git operations, file system tasks, or custom tools)
+
+**Running Commands:**
+1. Use `vibe-tools <command>` to execute commands (make sure vibe-tools is installed globally using npm install -g vibe-tools so that it is in your PATH)
+
+**General Command Options (Supported by all commands):**
+--provider=<provider>: AI provider to use (openai, anthropic, perplexity, gemini, openrouter, modelbox, or xai). If provider is not specified, the default provider for that task will be used.
+--model=<model name>: Specify an alternative AI model to use. If model is not specified, the provider's default model for that task will be used.
+--max-tokens=<number>: Control response length
+--save-to=<file path>: Save command output to a file (in *addition* to displaying it)
+--help: View all available options (help is not fully implemented yet)
+--debug: Show detailed logs and error information
+
+**Repository Command Options:**
+--provider=<provider>: AI provider to use (gemini, openai, openrouter, perplexity, modelbox, anthropic, or xai)
+--model=<model>: Model to use for repository analysis
+--max-tokens=<number>: Maximum tokens for response
+--from-github=<GitHub username>/<repository name>[@<branch>]: Analyze a remote GitHub repository without cloning it locally
+--subdir=<path>: Analyze a specific subdirectory instead of the entire repository
+--with-doc=<doc_url>: Fetch content from a document URL and include it as context
+
+**Documentation Command Options:**
+--from-github=<GitHub username>/<repository name>[@<branch>]: Generate documentation for a remote GitHub repository
+--provider=<provider>: AI provider to use (gemini, openai, openrouter, perplexity, modelbox, anthropic, or xai)
+--model=<model>: Model to use for documentation generation
+--max-tokens=<number>: Maximum tokens for response
+--with-doc=<doc_url>: Fetch content from a document URL and include it as context
+
+**YouTube Command Options:**
+--type=<summary|transcript|plan|review|custom>: Type of analysis to perform (default: summary)
+
+**GitHub Command Options:**
+--from-github=<GitHub username>/<repository name>[@<branch>]: Access PRs/issues from a specific GitHub repository
+
+**Browser Command Options (for 'open', 'act', 'observe', 'extract'):**
+--console: Capture browser console logs (enabled by default, use --no-console to disable)
+--html: Capture page HTML content (disabled by default)
+--network: Capture network activity (enabled by default, use --no-network to disable)
+--screenshot=<file path>: Save a screenshot of the page
+--timeout=<milliseconds>: Set navigation timeout (default: 120000ms for Stagehand operations, 30000ms for navigation)
+--viewport=<width>x<height>: Set viewport size (e.g., 1280x720). When using --connect-to, viewport is only changed if this option is explicitly provided
+--headless: Run browser in headless mode (default: true)
+--no-headless: Show browser UI (non-headless mode) for debugging
+--connect-to=<port>: Connect to existing Chrome instance. Special values: 'current' (use existing page), 'reload-current' (refresh existing page)
+--wait=<time:duration or selector:css-selector>: Wait after page load (e.g., 'time:5s', 'selector:#element-id')
+--video=<directory>: Save a video recording (1280x720 resolution, timestamped subdirectory). Not available when using --connect-to
+--url=<url>: Required for `act`, `observe`, and `extract` commands. Url to navigate to before the main command or one of the special values 'current' (to stay on the current page without navigating or reloading) or 'reload-current' (to reload the current page)
+--evaluate=<string>: JavaScript code to execute in the browser before the main command
+
+**Nicknames**
+Users can ask for these tools using nicknames
+Gemini is a nickname for vibe-tools repo
+Perplexity is a nickname for vibe-tools web
+Stagehand is a nickname for vibe-tools browser
+If people say "ask Gemini" or "ask Perplexity" or "ask Stagehand" they mean to use the `vibe-tools` command with the `repo`, `web`, or `browser` commands respectively.
+
+**Xcode Commands:**
+`vibe-tools xcode build [buildPath=<path>] [destination=<destination>]` - Build Xcode project and report errors.
+**Build Command Options:**
+--buildPath=<path>: (Optional) Specifies a custom directory for derived build data. Defaults to ./.build/DerivedData.
+--destination=<destination>: (Optional) Specifies the destination for building the app (e.g., 'platform=iOS Simulator,name=iPhone 16 Pro'). Defaults to 'platform=iOS Simulator,name=iPhone 16 Pro'.
+
+`vibe-tools xcode run [destination=<destination>]` - Build and run the Xcode project on a simulator.
+**Run Command Options:**
+--destination=<destination>: (Optional) Specifies the destination simulator (e.g., 'platform=iOS Simulator,name=iPhone 16 Pro'). Defaults to 'platform=iOS Simulator,name=iPhone 16 Pro'.
+
+`vibe-tools xcode lint` - Run static analysis on the Xcode project to find and fix issues.
+
+**Additional Notes:**
+- For detailed information, see `node_modules/vibe-tools/README.md` (if installed locally).
+- Configuration is in `vibe-tools.config.json` (or `~/.vibe-tools/config.json`).
+- API keys are loaded from `.vibe-tools.env` (or `~/.vibe-tools/.env`).
+- ClickUp commands require a `CLICKUP_API_TOKEN` to be set in your `.vibe-tools.env` file.
+- Available models depend on your configured provider (OpenAI, Anthropic, xAI, etc.) in `vibe-tools.config.json`.
+- repo has a limit of 2M tokens of context. The context can be reduced by filtering out files in a .repomixignore file.
+- problems running browser commands may be because playwright is not installed. Recommend installing playwright globally.
+- MCP commands require `ANTHROPIC_API_KEY` or `OPENROUTER_API_KEY`
+- **Remember:** You're part of a team of superhuman expert AIs. Work together to solve complex problems.
+- **Repomix Configuration:** You can customize which files are included/excluded during repository analysis by creating a `repomix.config.json` file in your project root. This file will be automatically detected by `repo`, `plan`, and `doc` commands.
+
+<!-- vibe-tools-version: 0.60.6 -->
+</vibe-tools Integration>
+</file>
+
+<file path="public/manifest.json">
+{
+  "name": "Playwright Extension",
+  "version": "0.12.0",
+  "manifest_version": 3,
+  "description": "Manage and run Playwright automation scripts in your browser",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Playwright Extension",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "debugger",
+    "tabs",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
+</file>
+
+<file path="src/scripts/test.ts">
+import type { ScriptDefinition } from '../core/types';
+const script: ScriptDefinition = {
+  id: 'test',
+  name: 'Test Script',
+  description: 'A simple test script that demonstrates the script structure (opens new tab)',
+  useCurrentTab: false,  // explicitly set to false to show it opens a new tab
+  async run(ctx) {
+    ctx.log('Starting test script...');
+    await ctx.page.goto('https://example.com');
+    ctx.log('Navigated to example.com');
+    const title = await ctx.page.title();
+    ctx.log(`Page title: ${title}`);
+  }
+};
+export default script;
+</file>
+
+<file path=".gitignore">
+dist/
+node_modules/
+bun.lockb
+/node_modules
+./node_modules
+/dist
+</file>
+
+<file path="README.md">
+# Playwright Automation Chrome Extension
+
+A Chrome extension that allows you to run Playwright automation scripts directly from your browser. This extension provides a clean, modern interface for managing and executing predefined scripts.
+
+## Features
+
+- Run Playwright automation scripts in your browser with a single click
+- Support for both new tab and current tab automation
+- Real-time execution logs
+- **NEW: Dynamic JavaScript Execution for Remote Scripts**
+- Sync scripts from GitHub repository
+
+## Installation
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v16 or higher)
+- [Bun](https://bun.sh/) or npm
+
+### Setup
+
+1. Clone this repository:
+   ```bash
+   git clone <repository-url>
+   cd playwright-extension
+   ```
+
+2. Install dependencies:
+   ```bash
+   bun install
+   ```
+
+3. Build the extension:
+   ```bash
+   bun run build
+   ```
+
+4. Load the extension in Chrome:
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable "Developer mode" (toggle in the top-right corner)
+   - Click "Load unpacked" and select the `dist` folder from this project
+
+## Creating Scripts
+
+Scripts are stored in the `src/scripts` directory for local scripts, or can be hosted in a GitHub repository for remote scripts.
+
+### Local Scripts
+
+Create a new file in the `src/scripts` directory (e.g., `myScript.ts`) with the following structure:
+
+```typescript
+import type { ScriptDefinition } from '../core/types';
+
+const script: ScriptDefinition = {
+  id: 'unique-script-id',
+  name: 'My Script Name',
+  description: 'What this script does',
+  useCurrentTab: true, // Set to false to open in a new tab
+  async run(ctx) {
+    const { page, log } = ctx;
+    
+    // Your automation code goes here
+    log('Starting script...');
+    await page.goto('https://example.com');
+    
+    // Use Playwright commands to automate the page
+    await page.fill('input[name="search"]', 'search term');
+    await page.click('button[type="submit"]');
+    
+    log('Script completed');
+  }
+};
+
+export default script;
+```
+
+### Remote Scripts (GitHub)
+
+You can host scripts in a GitHub repository and sync them to your extension. The extension includes a dynamic JavaScript execution system that can safely execute these scripts without violating Chrome's Content Security Policy.
+
+1. Create a GitHub repository (e.g., `playwright-script-examples`)
+2. Add TypeScript files with the same structure as local scripts
+3. Update the `GITHUB_REPO` constant in `src/services/scriptSync.ts` to point to your repository
+4. Click the sync button in the extension to fetch and parse the scripts
+
+Example remote script:
+
+```typescript
+// File: google-search.ts
+
+import type { ScriptDefinition } from '../core/types';
+
+const script: ScriptDefinition = {
+  id: 'google-search',
+  name: 'Google Search',
+  description: 'Navigate to Google and perform a search',
+  useCurrentTab: true,
+  async run(ctx) {
+    const { page, log } = ctx;
+    
+    log('Navigating to Google...');
+    await page.goto('https://www.google.com');
+    
+    log('Waiting for page to load...');
+    await page.waitForTimeout(1000);
+    
+    log('Typing search query...');
+    await page.fill('input[name="q"]', 'playwright automation');
+    
+    log('Pressing Enter to search...');
+    await page.press('input[name="q"]', 'Enter');
+    
+    log('Waiting for search results...');
+    await page.waitForTimeout(2000);
+    
+    log('Search completed successfully!');
+  }
+};
+
+export default script;
+```
+
+## How the Dynamic JavaScript Execution Works
+
+The extension includes a dynamic JavaScript execution system that can safely execute remote scripts without violating Chrome's Content Security Policy:
+
+1. **Script Extraction**: When you sync scripts from GitHub, the extension fetches the TypeScript files and extracts the script information and function body.
+
+2. **Dynamic Proxy**: The system creates a dynamic proxy around the Playwright `page` object that intercepts all method calls.
+
+3. **Method Forwarding**: Any method call on the proxied `page` object is automatically forwarded to the real Playwright API.
+
+4. **Safe Execution**: Instead of using `eval()` directly, the system uses a controlled execution environment with access only to the provided context.
+
+5. **Full JavaScript Support**: This approach allows scripts to use any Playwright method, not just predefined ones, while still complying with Chrome's security restrictions.
+
+This approach is similar to implementing a lightweight JavaScript engine that bridges to the real Playwright API, allowing for maximum flexibility while maintaining security.
+
+## Using the Extension
+
+1. Click on the extension icon to open the popup
+2. You'll see a list of available scripts with their descriptions
+3. Click "Run" to execute a script
+4. View real-time logs by clicking the logs button
+5. Click the sync button to fetch remote scripts from GitHub
+
+## Troubleshooting
+
+- If scripts aren't appearing in the UI, make sure they export a default `ScriptDefinition` object
+- Check the browser console for any errors
+- Ensure you've reloaded the extension after making changes to scripts
+
+## License
+
+ISC
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}
+</file>
+
+<file path="vite.config.ts">
+/**
+ * Copyright (c) Rui Figueira.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { defineConfig } from 'vite';
+import { resolve } from 'path';
+import { copyFileSync, mkdirSync } from 'fs';
+// Copy static assets to dist
+function copyStaticFiles() {
+  // Ensure dist directory exists
+  mkdirSync('dist', { recursive: true });
+  // Copy icons
+  copyFileSync('icons/icon16.png', 'dist/icon16.png');
+  copyFileSync('icons/icon48.png', 'dist/icon48.png');
+  copyFileSync('icons/icon128.png', 'dist/icon128.png');
+  // Copy manifest and other static files
+  copyFileSync('public/manifest.json', 'dist/manifest.json');
+  copyFileSync('public/popup.html', 'dist/popup.html');
+  copyFileSync('public/popup.css', 'dist/popup.css');
+}
+// https://vitejs.dev/config/
+export default defineConfig({
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        background: resolve(__dirname, 'src/background.ts'),
+        popup: resolve(__dirname, 'src/popup.ts')
+      },
+      output: {
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name].[ext]'
+      }
+    }
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src')
+    }
+  },
+  plugins: [{
+    name: 'copy-static-files',
+    closeBundle() {
+      copyStaticFiles();
+    }
+  }]
+});
+</file>
+
+<file path="src/scripts/github.ts">
+import type { ScriptDefinition } from '../core/types';
+const script: ScriptDefinition = {
+  id: 'github-search',
+  name: 'GitHub Search',
+  description: 'Navigate to a GitHub repo and perform a search',
+  useCurrentTab: true,
+  parameters: [
+    {
+      name: 'searchQuery',
+      description: 'The text to search for on GitHub',
+      type: 'string',
+      default: 'hello world',
+      required: true
+    }
+  ],
+  async run(ctx) {
+    const { page, log, parameters } = ctx;
+    // Get the search query parameter or use default
+    const searchQuery = parameters?.searchQuery || 'hello world';
+    log('Navigating to GitHub repository...');
+    await page.goto('https://github.com/ctrl-cheeb-del/');
+    log('Waiting for 2 seconds...');
+    await page.waitForTimeout(2000);
+    log('Pressing / key to open search...');
+    await page.keyboard.press('/');
+    log('Waiting another 2 seconds...');
+    await page.waitForTimeout(2000);
+    log(`Typing search query: "${searchQuery}"...`);
+    await page.keyboard.type(searchQuery);
+    log('Search completed');
+  }
+};
+export default script;
+</file>
+
+<file path="src/services/storage.ts">
+import type { StorageData, RemoteScript, ScriptDefinition, SerializableScript, ScriptContext } from '../core/types';
+import { executeScript } from '../core/interpreter';
+class StorageService {
+  private async getData(): Promise<StorageData> {
+    const data = await chrome.storage.local.get(['scriptSettings', 'remoteScripts', 'lastSyncTime', 'localRecordedScripts']);
+    return { 
+      scriptSettings: data.scriptSettings || {},
+      remoteScripts: data.remoteScripts || [],
+      lastSyncTime: data.lastSyncTime || 0,
+      localRecordedScripts: data.localRecordedScripts || []
+    };
+  }
+  private async setData(data: StorageData): Promise<void> {
+    await chrome.storage.local.set({ 
+      scriptSettings: data.scriptSettings,
+      remoteScripts: data.remoteScripts,
+      lastSyncTime: data.lastSyncTime,
+      localRecordedScripts: data.localRecordedScripts
+    });
+  }
+  async getScriptSettings(scriptId: string): Promise<any> {
+    const data = await this.getData();
+    return data.scriptSettings[scriptId] || {};
+  }
+  async saveScriptSettings(scriptId: string, settings: any): Promise<void> {
+    const data = await this.getData();
+    data.scriptSettings[scriptId] = settings;
+    await this.setData(data);
+  }
+  async clearScriptSettings(scriptId: string): Promise<void> {
+    const data = await this.getData();
+    delete data.scriptSettings[scriptId];
+    await this.setData(data);
+  }
+  // Remote scripts methods
+  async getRemoteScripts(): Promise<RemoteScript[]> {
+    const data = await this.getData();
+    return data.remoteScripts;
+  }
+  async saveRemoteScripts(scripts: RemoteScript[]): Promise<void> {
+    const data = await this.getData();
+    data.remoteScripts = scripts;
+    data.lastSyncTime = Date.now();
+    await this.setData(data);
+  }
+  async getLastSyncTime(): Promise<number> {
+    const data = await this.getData();
+    return data.lastSyncTime || 0;
+  }
+  // Local recorded scripts methods
+  async getLocalRecordedScripts(): Promise<ScriptDefinition[]> {
+    const data = await this.getData();
+    const scripts = data.localRecordedScripts || [];
+    // Recreate the run function for each script using the executeScript function
+    return scripts.map(script => {
+      if (script.code) {
+        // Recreate the run function
+        const runFunction = async (ctx: ScriptContext) => {
+          try {
+            ctx.log(`Starting recorded script: ${script.name}`);
+            await executeScript(script.code, ctx);
+            ctx.log(`Recorded script completed: ${script.name}`);
+          } catch (error) {
+            ctx.log(
+              `Error executing script: ${error instanceof Error ? error.message : String(error)}`
+            );
+            throw error;
+          }
+        };
+        // Return the script with the recreated run function
+        return {
+          ...script,
+          run: runFunction
+        };
+      }
+      return script as unknown as ScriptDefinition;
+    });
+  }
+  async saveLocalRecordedScript(script: ScriptDefinition): Promise<void> {
+    const data = await this.getData();
+    // Initialize if not exists
+    if (!data.localRecordedScripts) {
+      data.localRecordedScripts = [];
+    }
+    // Create a serializable version of the script
+    const serializableScript: SerializableScript = {
+      id: script.id,
+      name: script.name,
+      description: script.description,
+      useCurrentTab: script.useCurrentTab,
+      source: script.source,
+      lastUpdated: script.lastUpdated,
+      isRemote: script.isRemote,
+      code: script.code || '',  // Ensure code is always a string
+    };
+    // Add the new script
+    data.localRecordedScripts.push(serializableScript);
+    await this.setData(data);
+  }
+  async deleteLocalRecordedScript(scriptId: string): Promise<boolean> {
+    const data = await this.getData();
+    // If no scripts exist, return false
+    if (!data.localRecordedScripts || data.localRecordedScripts.length === 0) {
+      return false;
+    }
+    // Find the script index
+    const scriptIndex = data.localRecordedScripts.findIndex(script => script.id === scriptId);
+    // If script not found, return false
+    if (scriptIndex === -1) {
+      return false;
+    }
+    // Remove the script
+    data.localRecordedScripts.splice(scriptIndex, 1);
+    // Save the updated data
+    await this.setData(data);
+    return true;
+  }
+}
+export const storageService = new StorageService();
+</file>
+
+<file path="public/popup.html">
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Playwright Extension</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Playwright Extension</h1>
+      <div class="header-actions">
+        <button id="recordButton" class="secondary-button" title="Record a new script">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+        <button id="syncButton" class="secondary-button" title="Sync scripts from repository">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="scripts-container">
+      <div id="scriptsList"></div>
+    </div>
+    <!-- Logs toggle button -->
+    <div id="logsToggle" class="logs-toggle">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </div>
+    <!-- Logs container -->
+    <div id="logsContainer" class="logs-container">
+      <div class="logs-header">
+        <h3>Execution Logs</h3>
+        <button id="closeLogsBtn" class="secondary-button">Close</button>
+      </div>
+      <pre id="logsContent" class="logs-content"></pre>
+    </div>
+    <!-- Recording modal -->
+    <div id="recordingModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="recordingModalTitle">Start Recording</h3>
+          <button id="closeRecordingModalBtn" class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="recordingOptions" class="recording-options">
+            <div class="tab-options">
+              <div class="tab-option">
+                <input type="radio" id="currentTab" name="tabOption" value="current" checked>
+                <label for="currentTab">
+                  <div class="option-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="9" y1="3" x2="9" y2="21"></line>
+                    </svg>
+                  </div>
+                  <span>Use current tab</span>
+                </label>
+              </div>
+              <div class="tab-option">
+                <input type="radio" id="newTab" name="tabOption" value="new">
+                <label for="newTab">
+                  <div class="option-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                  </div>
+                  <span>Open new tab</span>
+                </label>
+              </div>
+            </div>
+            <div class="button-container centered">
+              <button id="startRecordingBtn" class="primary-button">Start Recording</button>
+            </div>
+          </div>
+          <div id="recordingStatus" class="recording-status" style="display: none;">
+            <div class="recording-indicator">
+              <div class="recording-dot"></div>
+              <span>Recording in progress...</span>
+            </div>
+            <div class="recording-tab-info" id="recordingTabInfo"></div>
+            <div class="actions-count">
+              <span id="actionsCount">0</span> actions recorded
+            </div>
+            <div class="button-container centered">
+              <button id="stopRecordingBtn" class="primary-button">Stop Recording</button>
+            </div>
+          </div>
+          <div id="saveRecordingForm" class="save-recording-form" style="display: none;">
+            <div class="recording-complete-message">
+              <p>Recording complete!</p>
+              <p class="actions-summary"><span id="actionsSummary">0</span> actions recorded</p>
+            </div>
+            <div class="form-group">
+              <label for="scriptName">Script Name</label>
+              <input type="text" id="scriptName" placeholder="Enter a name for your script">
+            </div>
+            <div class="form-group">
+              <label for="scriptDescription">Description</label>
+              <input type="text" id="scriptDescription" placeholder="Enter a description">
+            </div>
+            <div class="form-actions centered">
+              <button id="copyScriptBtn" class="primary-button">Copy Script</button>
+              <button id="saveScriptBtn" class="primary-button">Save Script</button>
+              <button id="downloadTraceBtn" class="secondary-button">Download Trace</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
+</file>
+
+<file path="src/core/registry.ts">
+/// <reference types="vite/client" />
+import type { ScriptDefinition } from './types';
+import { scriptSyncService } from '../services/scriptSync';
+import { storageService } from '../services/storage';
+// Import all local script modules
+const scriptModules = import.meta.glob<{ default: ScriptDefinition }>('../scripts/*.ts', { eager: true });
+// Convert modules to array of local scripts
+export const localScripts: ScriptDefinition[] = Object.values(scriptModules)
+  .map((module: { default: ScriptDefinition }) => {
+    // Mark as local script
+    const script = module.default;
+    script.source = 'local';
+    return script;
+  })
+  .sort((a, b) => a.name.localeCompare(b.name));
+// This will hold all scripts (local + remote)
+let allScripts: ScriptDefinition[] = [];
+// Helper to find a script by ID
+export function findScript(id: string): ScriptDefinition | undefined {
+  return allScripts.find(script => script.id === id);
+}
+// Get all available scripts (local + remote)
+export async function getAvailableScripts(forceSync = false): Promise<ScriptDefinition[]> {
+  // Always sync on first load or when forced
+  if (forceSync || allScripts.length === 0) {
+    // Get remote scripts
+    const remoteScripts = await scriptSyncService.getAllScripts(localScripts);
+    // Get locally recorded scripts
+    const localRecordedScripts = await storageService.getLocalRecordedScripts();
+    // Combine all scripts
+    allScripts = [...remoteScripts, ...localRecordedScripts];
+    // Sort scripts by name
+    allScripts.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  return allScripts;
+}
+// Sync with remote repository
+export async function syncRemoteScripts(): Promise<void> {
+  await scriptSyncService.syncScripts();
+  // Get remote scripts
+  const remoteScripts = await scriptSyncService.getAllScripts(localScripts);
+  // Get locally recorded scripts
+  const localRecordedScripts = await storageService.getLocalRecordedScripts();
+  // Combine all scripts
+  allScripts = [...remoteScripts, ...localRecordedScripts];
+  // Sort scripts by name
+  allScripts.sort((a, b) => a.name.localeCompare(b.name));
+}
+// Add a new script to the registry
+export async function addScript(script: ScriptDefinition): Promise<void> {
+  // Add to the in-memory scripts list
+  allScripts = [...allScripts, script];
+  // Sort scripts by name
+  allScripts.sort((a, b) => a.name.localeCompare(b.name));
+  // Save to storage
+  await storageService.saveLocalRecordedScript(script);
+}
+// Delete a script from the registry
+export async function deleteScript(scriptId: string): Promise<boolean> {
+  // Find the script
+  const scriptIndex = allScripts.findIndex(script => script.id === scriptId);
+  // If script not found, return false
+  if (scriptIndex === -1) {
+    return false;
+  }
+  // Check if it's a locally recorded script
+  const script = allScripts[scriptIndex];
+  if (script.source !== 'local' || script.isRemote) {
+    // Only locally recorded scripts can be deleted
+    return false;
+  }
+  // Remove from in-memory list
+  allScripts.splice(scriptIndex, 1);
+  // Remove from storage
+  return await storageService.deleteLocalRecordedScript(scriptId);
+}
+</file>
+
+<file path="src/core/types.ts">
+import type { Page } from 'playwright-crx';
+export interface ScriptContext {
+  page: Page;
+  log: (msg: string) => void;
+  parameters?: Record<string, any>;  // Parameter values provided by the user
+}
+export interface ScriptParameter {
+  name: string;
+  description: string;
+  type: 'string' | 'number' | 'boolean';
+  default?: string | number | boolean;
+  required?: boolean;
+}
+export interface ScriptDefinition {
+  id: string;
+  name: string;
+  description: string;
+  useCurrentTab?: boolean;  // If true, attach to current tab; if false or undefined, create new tab
+  run: (ctx: ScriptContext) => Promise<void>;
+  source?: 'local' | 'remote';  // Track where the script came from
+  lastUpdated?: number;  // Timestamp for when the script was last updated
+  isRemote?: boolean;  // Flag to indicate if this is a remote script
+  code?: string;  // The script code as a string (for interpreter execution)
+  parameters?: ScriptParameter[];  // Parameters that can be configured when running the script
+}
+// Remote script format (what we fetch from GitHub)
+export interface RemoteScript {
+  id: string;
+  name: string;
+  description: string;
+  useCurrentTab?: boolean;
+  code: string;  // The function body as a string
+  scriptBody?: string;  // Alternative name for the function body
+  version: number;  // Version number for tracking updates
+}
+export interface ScriptExecutionResult {
+  success: boolean;
+  error?: string;
+  output?: string;
+  logs: string[];
+}
+export interface StorageData {
+  scriptSettings: Record<string, any>;  // For storing user settings for scripts
+  remoteScripts: RemoteScript[];  // For storing fetched remote scripts
+  lastSyncTime?: number;  // When we last synced with the remote repository
+  localRecordedScripts?: SerializableScript[];  // For storing locally recorded scripts
+}
+export interface ScriptLogUpdateMessage {
+  type: 'SCRIPT_LOG_UPDATE';
+  logs: string[];
+}
+export interface StartRecordingMessage {
+  type: 'START_RECORDING';
+  useCurrentTab: boolean;
+}
+export interface StopRecordingMessage {
+  type: 'STOP_RECORDING';
+}
+export interface RecordingStatusUpdateMessage {
+  type: 'RECORDING_STATUS_UPDATE';
+  isRecording: boolean;
+  actions: RecordedAction[];
+  tabUrl?: string;
+}
+export interface GetRecordingStateMessage {
+  type: 'GET_RECORDING_STATE';
+}
+export interface GetScriptCodeMessage {
+  type: 'GET_SCRIPT_CODE';
+  scriptName: string;
+  scriptDescription: string;
+}
+export interface DiscardRecordingMessage {
+  type: 'DISCARD_RECORDING';
+}
+export interface DeleteScriptMessage {
+  type: 'DELETE_SCRIPT';
+  scriptId: string;
+}
+export interface ExecuteScriptMessage {
+  type: 'EXECUTE_SCRIPT';
+  scriptId: string;
+  parameters?: Record<string, any>;  // Parameter values provided by the user
+}
+export interface RecordedAction {
+  type: string;  // 'click', 'fill', 'press', etc.
+  selector?: string;
+  value?: string;
+  timestamp: number;  // When the action occurred
+  timeSincePrevious?: number;  // Time in ms since the previous action
+}
+export type ChromeMessage = 
+  | ScriptLogUpdateMessage
+  | StartRecordingMessage
+  | StopRecordingMessage
+  | RecordingStatusUpdateMessage
+  | GetRecordingStateMessage
+  | GetScriptCodeMessage
+  | DiscardRecordingMessage
+  | DeleteScriptMessage
+  | ExecuteScriptMessage;
+// For storing scripts in storage (without the run function)
+export interface SerializableScript extends Omit<ScriptDefinition, 'run'> {
+  run?: undefined;
+  code: string;  // The script code is required for serializable scripts
+}
+</file>
+
+<file path="src/services/scriptSync.ts">
+import { executeScript } from '../core/interpreter';
+import type { RemoteScript, ScriptContext, ScriptDefinition } from '../core/types';
+import { storageService } from './storage';
+const GITHUB_REPO = 'ctrl-cheeb-del/playwright-script-examples';
+const GITHUB_BRANCH = 'master';
+const SCRIPTS_PATH = ''; // Root directory
+class ScriptSyncService {
+  /**
+   * Fetch scripts from GitHub and store them locally
+   */
+  async syncScripts(): Promise<RemoteScript[]> {
+    try {
+      // Add cache-busting timestamp to prevent caching
+      const cacheBuster = Date.now();
+      // Fetch the files from GitHub repository root
+      const response = await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/contents/${SCRIPTS_PATH}?ref=${GITHUB_BRANCH}&_=${cacheBuster}`,
+        {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status}`);
+      }
+      const files = await response.json();
+      // Filter for .ts files
+      const scriptFiles = files.filter(
+        (file: any) =>
+          file.type === 'file' && (file.name.endsWith('.ts') || file.name.endsWith('.js'))
+      );
+      // Fetch each script file
+      const scripts: RemoteScript[] = [];
+      for (const file of scriptFiles) {
+        // Add cache-busting to file URL
+        const fileUrl = `${file.download_url}?_=${cacheBuster}`;
+        const scriptResponse = await fetch(fileUrl, {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          },
+        });
+        if (scriptResponse.ok) {
+          const scriptText = await scriptResponse.text();
+          // Parse the TypeScript file to extract script information
+          const parsedScript = this.parseTypeScriptFile(scriptText, file.name);
+          if (parsedScript) {
+            scripts.push(parsedScript);
+          }
+        }
+      }
+      // Save to storage
+      await storageService.saveRemoteScripts(scripts);
+      return scripts;
+    } catch (error) {
+      return [];
+    }
+  }
+  /**
+   * Parse a TypeScript file to extract script information
+   */
+  private parseTypeScriptFile(fileContent: string, fileName: string): RemoteScript | null {
+    try {
+      // Extract script ID from filename (remove extension)
+      let id = fileName.replace(/\.(ts|js)$/, '');
+      // Try to extract ID from the script definition first
+      const idMatch = fileContent.match(/id:\s*['"]([^'"]+)['"]/);
+      if (idMatch) {
+        id = idMatch[1];
+      }
+      // Extract name using regex
+      const nameMatch = fileContent.match(/name:\s*['"]([^'"]+)['"]/);
+      const name = nameMatch ? nameMatch[1] : id;
+      // Extract description using regex
+      const descMatch = fileContent.match(/description:\s*['"]([^'"]+)['"]/);
+      const description = descMatch ? descMatch[1] : '';
+      // Extract useCurrentTab using regex
+      const useCurrentTabMatch = fileContent.match(/useCurrentTab:\s*(true|false)/);
+      const useCurrentTab = useCurrentTabMatch ? useCurrentTabMatch[1] === 'true' : true;
+      // Extract the run function body
+      const runFunctionMatch = fileContent.match(
+        /async\s+run\s*\([^)]*\)\s*{([\s\S]*?)}\s*(?:;|\n)/
+      );
+      const runFunctionBody = runFunctionMatch ? runFunctionMatch[1].trim() : '';
+      if (!runFunctionBody) {
+        return null;
+      }
+      return {
+        id,
+        name,
+        description,
+        useCurrentTab,
+        code: runFunctionBody, // Store the raw function body
+        version: Date.now(), // Use timestamp as version
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+  /**
+   * Convert a remote script to a runnable script definition
+   */
+  convertRemoteScript(remoteScript: RemoteScript): ScriptDefinition {
+    // Create a script definition from a remote script
+    const runFunction = async (ctx: ScriptContext) => {
+      try {
+        ctx.log(`Starting remote script: ${remoteScript.name}`);
+        console.log('remoteScript.code', remoteScript.code);
+        await executeScript(remoteScript.code, ctx);
+        ctx.log(`Remote script completed: ${remoteScript.name}`);
+      } catch (error) {
+        ctx.log(
+          `Error executing script: ${error instanceof Error ? error.message : String(error)}`
+        );
+        throw error;
+      }
+    };
+    return {
+      id: remoteScript.id,
+      name: remoteScript.name,
+      description: remoteScript.description,
+      useCurrentTab: remoteScript.useCurrentTab,
+      isRemote: true,
+      source: 'remote',
+      lastUpdated: Date.now(),
+      run: runFunction,
+    };
+  }
+  /**
+   * Get all available scripts (local + remote)
+   */
+  async getAllScripts(localScripts: ScriptDefinition[]): Promise<ScriptDefinition[]> {
+    // Get remote scripts from storage
+    const remoteScripts = await storageService.getRemoteScripts();
+    // Convert remote scripts to script definitions
+    const convertedRemoteScripts = remoteScripts.map(script => this.convertRemoteScript(script));
+    // Combine local and remote scripts
+    // If there are duplicates (same ID), prefer the local version
+    const allScripts: ScriptDefinition[] = [...localScripts];
+    // Add remote scripts that don't conflict with local ones
+    for (const remoteScript of convertedRemoteScripts) {
+      if (!allScripts.some(script => script.id === remoteScript.id)) {
+        allScripts.push(remoteScript);
+      }
+    }
+    return allScripts;
+  }
+}
+export const scriptSyncService = new ScriptSyncService();
+</file>
+
+<file path="public/popup.css">
+:root {
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #2a2a3c;
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6adc8;
+  --accent: #89b4fa;
+  --accent-hover: #74c7ec;
+  --error: #f38ba8;
+  --success: #a6e3a1;
+  --border-radius: 8px;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --transition: all 0.2s ease;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  width: 320px;
+  max-height: 500px;
+  overflow: hidden;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+header {
+  padding: 12px 16px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+h1 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.scripts-container {
+  padding: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+.script-item {
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: var(--transition);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow);
+}
+.script-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+.script-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.script-info strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.script-info small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.script-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.delete-script {
+  padding: 4px;
+  min-width: auto;
+  height: auto;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+.delete-script:hover {
+  color: var(--error);
+}
+.delete-script.error {
+  color: var(--error);
+}
+.delete-script:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.deleting-icon {
+  animation: rotate 1s linear infinite;
+}
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+#settingsEditor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-primary);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(0);
+  transition: transform 0.3s ease;
+}
+#settingsEditor.hidden {
+  transform: translateY(100%);
+}
+.editor-header {
+  padding: 12px 16px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.editor-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.editor-actions {
+  display: flex;
+  gap: 8px;
+}
+.editor-container {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+.settings-group {
+  margin-bottom: 16px;
+}
+.settings-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.primary-button {
+  background-color: var(--accent);
+  color: #1e1e2e;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.primary-button:hover {
+  background-color: var(--accent-hover);
+}
+.primary-button.error {
+  background-color: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+.secondary-button {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.secondary-button:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.secondary-button.error {
+  background-color: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+.hidden {
+  display: none !important;
+}
+input[type="text"], textarea {
+  width: 100%;
+  background-color: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: var(--transition);
+}
+input[type="text"]:focus, textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+/* Logs container */
+.logs-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 20;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.2);
+}
+.logs-container.active {
+  max-height: 200px;
+}
+.logs-header {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.2);
+}
+.logs-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+.logs-content {
+  padding: 8px 12px;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-y: auto;
+  max-height: 160px;
+  white-space: pre-wrap;
+}
+/* Status indicator */
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+.status-indicator.running {
+  background-color: var(--accent);
+  box-shadow: 0 0 0 rgba(137, 180, 250, 0.4);
+  animation: pulse 1.5s infinite;
+}
+.status-indicator.success {
+  background-color: var(--success);
+}
+.status-indicator.error {
+  background-color: var(--error);
+}
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+/* Logs toggle button */
+.logs-toggle {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  z-index: 30;
+  opacity: 0;
+  transform: scale(0);
+}
+.logs-toggle.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+.logs-toggle:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.05);
+}
+.logs-toggle.pulse {
+  animation: togglePulse 1s ease-in-out;
+}
+@keyframes togglePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(137, 180, 250, 0.7);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 10px rgba(137, 180, 250, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(137, 180, 250, 0);
+  }
+}
+.logs-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.script-item {
+  animation: fadeIn 0.3s ease;
+}
+/* Sync button */
+#syncButton {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+#syncButton.syncing svg {
+  animation: rotate 1.5s linear infinite;
+}
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* Badge for remote scripts */
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.remote-badge {
+  background-color: var(--accent);
+  color: var(--bg-primary);
+}
+.parameters-badge {
+  background-color: #f9e2af;
+  color: #1e1e2e;
+}
+.script-id {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-top: 4px;
+}
+/* Header actions */
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+/* Recording button */
+#recordButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+#recordButton svg {
+  color: var(--error);
+}
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 30;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 300px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+.modal-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.close-button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.close-button:hover {
+  color: var(--text-primary);
+}
+.modal-body {
+  padding: 16px;
+}
+/* Recording UI */
+.recording-options,
+.recording-status,
+.save-recording-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.form-group label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.form-group input[type="text"] {
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.form-group input[type="text"]:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.form-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.form-actions.centered {
+  justify-content: center;
+}
+.form-actions button {
+  min-width: 100px;
+}
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: rgba(243, 139, 168, 0.1);
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(243, 139, 168, 0.3);
+}
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background-color: var(--error);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+.button-container {
+  display: flex;
+  margin-top: 16px;
+}
+.button-container.centered {
+  justify-content: center;
+}
+.actions-count {
+  font-size: 14px;
+  text-align: center;
+  color: var(--text-secondary);
+  margin: 16px 0;
+  padding: 10px;
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+/* Make the modal visible */
+.modal {
+  display: none;
+}
+/* When the modal is active */
+.modal.active {
+  display: flex;
+}
+/* Radio buttons */
+input[type="radio"] {
+  margin-right: 8px;
+}
+/* Textarea */
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+.recording-tab-info {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius);
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.recording-complete-message {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.recording-complete-message p {
+  margin: 0 0 8px 0;
+}
+.actions-summary {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.timing-info {
+  text-align: center;
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background-color: rgba(137, 180, 250, 0.1);
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(137, 180, 250, 0.2);
+}
+/* Custom radio buttons for tab options */
+.tab-options {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.tab-option {
+  flex: 1;
+}
+.tab-option input[type="radio"] {
+  display: none;
+}
+.tab-option label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--bg-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+.tab-option input[type="radio"]:checked + label {
+  background-color: rgba(137, 180, 250, 0.1);
+  border-color: var(--accent);
+}
+.option-icon {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+.tab-option input[type="radio"]:checked + label .option-icon {
+  color: var(--accent);
+}
+.tab-option label span {
+  font-size: 13px;
+}
+/* Parameters Modal Styles */
+.parameters-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.parameters-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+.parameters-modal .modal-content {
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 300px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease;
+}
+.parameters-modal .form-group {
+  margin-bottom: 16px;
+}
+.parameters-modal .form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.parameters-modal .form-group small {
+  display: block;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.parameters-modal .form-group input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.parameters-modal .form-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+.parameters-modal .modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.parameters-modal form {
+  padding: 16px;
+}
+.required {
+  color: var(--error);
+  margin-left: 2px;
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "playwright-extension",
+  "version": "0.1.0",
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc && vite build",
+    "dev": "vite build --watch"
+  },
+  "dependencies": {
+    "@types/node": "^22.13.9",
+    "playwright-crx": "0.12.0",
+    "scraggy": "^0.0.11"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.281",
+    "rollup-plugin-sourcemaps": "^0.6.3",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.6"
+  }
+}
+</file>
+
+<file path="src/core/interpreter.ts">
+import { evaluate } from 'scraggy';
+import type { ScriptContext } from './types';
+function createDynamicProxy(target: any, path = ''): any {
+  return new Proxy(
+    {},
+    {
+      get(_, prop) {
+        const propName = String(prop);
+        const fullPath = path ? `${path}.${propName}` : propName;
+        if (typeof target[propName] === 'function') {
+          return async (...args: any[]) => {
+            console.log(`Calling ${fullPath}(${args.map(a => JSON.stringify(a)).join(', ')})`);
+            return await target[propName](...args);
+          };
+        }
+        if (target[propName] && typeof target[propName] === 'object') {
+          return createDynamicProxy(target[propName], fullPath);
+        }
+        return target[propName];
+      },
+    }
+  );
+}
+function createGlobalScope(context: ScriptContext): Record<string, any> {
+  return {
+    ctx: { 
+      page: createDynamicProxy(context.page, 'page'), 
+      log: context.log,
+      parameters: context.parameters || {}
+    },
+    console: {
+      log: (...args: any[]) => {
+        const message = args
+          .map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
+          .join(' ');
+        context.log(message);
+      },
+      error: (...args: any[]) => {
+        const message = args
+          .map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
+          .join(' ');
+        context.log(`ERROR: ${message}`);
+      },
+      warn: (...args: any[]) => {
+        const message = args
+          .map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
+          .join(' ');
+        context.log(`WARNING: ${message}`);
+      },
+      info: (...args: any[]) => {
+        const message = args
+          .map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
+          .join(' ');
+        context.log(`INFO: ${message}`);
+      },
+    },
+  };
+}
+export async function executeScript(scriptCode: string, context: ScriptContext): Promise<void> {
+  try {
+    // Log the first few lines of the script for debugging
+    const previewLines = scriptCode.split('\n').slice(0, 5).join('\n');
+    console.log('Executing script preview:', previewLines + '...');
+    context.log('Script execution started');
+    if (context.parameters && Object.keys(context.parameters).length > 0) {
+      context.log(`Using parameters: ${JSON.stringify(context.parameters)}`);
+    }
+    await evaluate(createGlobalScope(context), scriptCode);
+  } catch (error) {
+    console.error('Error executing script:', error);
+    context.log(
+      `Error executing script: ${error instanceof Error ? error.message : String(error)}`
+    );
+    throw error;
+  }
+}
+</file>
+
+<file path="src/services/recording.ts">
+import { crx } from 'playwright-crx';
+import type { Page } from 'playwright-crx';
+import type { RecordedAction, ScriptDefinition, ScriptContext } from '../core/types';
+import { executeScript } from '../core/interpreter';
+class RecordingService {
+  private isRecording = false;
+  private recordedActions: RecordedAction[] = [];
+  private page: Page | null = null;
+  private crxApp: any = null;
+  private tabId: number | null = null;
+  private recordingTabUrl: string | null = null;
+  private recordingInterval: NodeJS.Timeout | null = null;
+  private lastUserInteractionTime: number = 0;
+  private navigationThreshold: number = 2000; // 2 second threshold
+  private traceData: Uint8Array | null = null;
+  // Helper function to properly escape strings for script generation
+  private escapeString(str: string): string {
+    if (!str) return '';
+    // Replace backslashes first to avoid double escaping
+    return str
+      .replace(/\\/g, '\\\\')      // Escape backslashes
+      .replace(/'/g, "\\'")        // Escape single quotes
+      .replace(/\n/g, '\\n')       // Escape newlines
+      .replace(/\r/g, '\\r')       // Escape carriage returns
+      .replace(/\t/g, '\\t')       // Escape tabs
+      .replace(/\f/g, '\\f')       // Escape form feeds
+      .replace(/\v/g, '\\v')       // Escape vertical tabs
+      .replace(/\0/g, '\\0');      // Escape null characters
+  }
+  // Helper function to properly escape selectors for script generation
+  private escapeSelector(selector: string): string {
+    if (!selector) return '';
+    // If it's a complex selector (getByLabel, getByRole), don't escape it
+    if (selector.startsWith('getByLabel(') || selector.startsWith('getByRole(')) {
+      return selector;
+    }
+    // For CSS selectors, escape any quotes
+    return selector
+      .replace(/\\/g, '\\\\')  // Escape backslashes
+      .replace(/'/g, "\\'");   // Escape single quotes
+  }
+  async startRecording(useCurrentTab: boolean): Promise<boolean> {
+    if (this.isRecording) {
+      return false;
+    }
+    try {
+      this.recordedActions = [];
+      this.traceData = null; // Clear previous trace data
+      // Try to start CRX, handle already started error
+      try {
+        this.crxApp = await crx.start();
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('crxApplication is already started')) {
+          console.log('Detected lingering CRX instance, attempting to start new instance...');
+          // Just try to start again - the error means no instance actually exists
+          try {
+            this.crxApp = await crx.start();
+          } catch (startError) {
+            console.error('Failed to start CRX:', startError);
+            throw new Error('Failed to start recording: Could not start CRX instance');
+          }
+        } else {
+          throw error;
+        }
+      }
+      if (useCurrentTab) {
+        // Get the current active tab
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab?.id) {
+          throw new Error('No active tab found');
+        }
+        this.tabId = tab.id;
+        this.recordingTabUrl = tab.url || null;
+        // Attach to the current tab
+        this.page = await this.crxApp.attach(tab.id);
+      } else {
+        // Create a new tab
+        this.page = await this.crxApp.newPage();
+        // Store the tab ID for future reference
+        const pages = await this.crxApp.context().pages();
+        for (const p of pages) {
+          if (p === this.page) {
+            // Get the tab ID from the page
+            const targets = await this.crxApp.browser().targets();
+            for (const target of targets) {
+              if (target.url() === p.url()) {
+                this.tabId = target._targetId;
+                this.recordingTabUrl = p.url();
+                break;
+              }
+            }
+            break;
+          }
+        }
+      }
+      if (!this.page) {
+        throw new Error('Failed to create or attach to page');
+      }
+      // Start Playwright tracing
+      try {
+        await this.page.context().tracing.start({ screenshots: true, snapshots: true, sources: true });
+        console.log('Playwright tracing started.');
+      } catch (traceError) {
+        console.error('Failed to start Playwright tracing:', traceError);
+        // Log and continue, or throw if critical
+      }
+      // Start recording
+      await this.setupRecording();
+      this.isRecording = true;
+      // Send status update
+      this.sendStatusUpdate();
+      // Set up an interval to periodically send status updates
+      // This ensures the popup can always get the latest state
+      this.recordingInterval = setInterval(() => {
+        this.sendStatusUpdate();
+      }, 5000); // Every 5 seconds
+      return true;
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      await this.cleanup();
+      return false;
+    }
+  }
+  async stopRecording(): Promise<RecordedAction[]> {
+    if (!this.isRecording && this.recordedActions.length === 0) {
+      this.traceData = null; // Ensure trace data is null if nothing was recorded
+      return [];
+    }
+    try {
+      this.isRecording = false; // Set to false before async operations that might use it
+      this.lastUserInteractionTime = 0;
+      // Stop Playwright tracing and save the trace file data
+      if (this.page) {
+        try {
+          await this.page.context().tracing.stop({ path: '/trace.zip' });
+          this.traceData = crx.fs.readFileSync('/trace.zip');
+          console.log('Playwright trace captured and read.');
+        } catch (traceError) {
+          console.error('Failed to stop Playwright tracing or read trace file:', traceError);
+          this.traceData = null; // Ensure traceData is null if error
+        }
+      }
+      // Clear the interval
+      if (this.recordingInterval) {
+        clearInterval(this.recordingInterval);
+        this.recordingInterval = null;
+      }
+      const actions = [...this.recordedActions];
+      // Ensure cleanup is completed before proceeding
+      await this.cleanup();
+      // Add a small delay to ensure CRX is fully cleaned up
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // Send status update
+      this.sendStatusUpdate();
+      // If no actions were recorded or we're explicitly discarding,
+      // clear the recorded actions
+      if (actions.length === 0) {
+        this.recordedActions = [];
+        this.traceData = null; // Also clear trace data if no actions
+      }
+      return actions;
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      // Try cleanup one more time
+      try {
+        await this.cleanup();
+      } catch (cleanupError) {
+        console.error('Error during final cleanup:', cleanupError);
+      }
+      return this.recordedActions;
+    }
+  }
+  // Add a method to explicitly discard the recording
+  async discardRecording(): Promise<void> {
+    this.isRecording = false;
+    this.recordedActions = [];
+    this.lastUserInteractionTime = 0;
+    this.traceData = null; // Clear trace data on discard
+    // Clear the interval
+    if (this.recordingInterval) {
+      clearInterval(this.recordingInterval);
+      this.recordingInterval = null;
+    }
+    try {
+      // Ensure cleanup is completed before proceeding
+      await this.cleanup();
+      // Add a small delay to ensure CRX is fully cleaned up
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // Send status update
+      this.sendStatusUpdate();
+    } catch (error) {
+      console.error('Error during discard cleanup:', error);
+      // Try cleanup one more time
+      try {
+        await this.cleanup();
+      } catch (cleanupError) {
+        console.error('Error during final cleanup:', cleanupError);
+      }
+    }
+  }
+  private async cleanup(): Promise<void> {
+    try {
+      if (this.recordingInterval) {
+        clearInterval(this.recordingInterval);
+        this.recordingInterval = null;
+      }
+      // If tracing was active and stopRecording wasn't properly called,
+      // try to stop it to prevent issues, though data won't be saved here.
+      if (this.page && this.isRecording) { // Check isRecording as a proxy for active tracing
+        try {
+          if (this.page.context().tracing) { // Ensure tracing object exists
+            await this.page.context().tracing.stop(); // Stop without path, won't save
+            console.log('Playwright tracing stopped during cleanup.');
+          }
+        } catch (tracingError) {
+          console.warn('Could not stop tracing during cleanup:', tracingError);
+        }
+      }
+      if (this.page) {
+        try {
+          // Remove all listeners
+          this.page.removeAllListeners('framenavigated');
+          // Remove page-level event listeners
+          await this.page.evaluate(() => {
+            // Remove any existing event listeners
+            const oldClickHandler = (window as any).__recordClickHandler;
+            const oldInputHandler = (window as any).__recordInputHandler;
+            const oldKeyDownHandler = (window as any).__recordKeyDownHandler;
+            const oldFocusHandler = (window as any).__recordFocusHandler;
+            const oldPasteHandler = (window as any).__recordPasteHandler;
+            const oldCopyHandler = (window as any).__recordCopyHandler;
+            const oldSubmitHandler = (window as any).__recordSubmitHandler;
+            if (oldClickHandler) document.removeEventListener('click', oldClickHandler, true);
+            if (oldInputHandler) {
+              document.removeEventListener('change', oldInputHandler, true);
+              document.removeEventListener('input', oldInputHandler, true);
+            }
+            if (oldKeyDownHandler) document.removeEventListener('keydown', oldKeyDownHandler, true);
+            if (oldFocusHandler) document.removeEventListener('focus', oldFocusHandler, true);
+            if (oldPasteHandler) document.removeEventListener('paste', oldPasteHandler, true);
+            if (oldCopyHandler) document.removeEventListener('copy', oldCopyHandler, true);
+            if (oldSubmitHandler) document.removeEventListener('submit', oldSubmitHandler, true);
+            // Clear the stored handlers
+            (window as any).__recordClickHandler = null;
+            (window as any).__recordInputHandler = null;
+            (window as any).__recordKeyDownHandler = null;
+            (window as any).__recordFocusHandler = null;
+            (window as any).__recordPasteHandler = null;
+            (window as any).__recordCopyHandler = null;
+            (window as any).__recordSubmitHandler = null;
+          }).catch(err => console.error('Error removing page event listeners:', err));
+        } catch (evalError) {
+          console.error('Error during page cleanup:', evalError);
+        }
+        if (this.tabId) {
+          try {
+            await this.crxApp.detach(this.page);
+          } catch (detachError) {
+            console.error('Error detaching from page:', detachError);
+          }
+        }
+      }
+      if (this.crxApp) {
+        try {
+          await this.crxApp.close();
+          // Add a small delay after closing to ensure it's fully cleaned up
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (closeError) {
+          console.error('Error closing CRX:', closeError);
+        }
+      }
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      throw error; // Re-throw to handle in calling function
+    } finally {
+      this.page = null;
+      this.crxApp = null;
+      this.tabId = null;
+    }
+  }
+  private async injectRecordingScript(): Promise<void> {
+    if (!this.page) return;
+    // Inject recording script
+    await this.page.evaluate(() => {
+      // Track focused element for keyboard events
+      let focusedElement: HTMLElement | null = null;
+      let lastInputValue: string = '';
+      // Remove any existing event listeners first to prevent duplicates
+      const oldClickHandler = (window as any).__recordClickHandler;
+      const oldInputHandler = (window as any).__recordInputHandler;
+      const oldKeyDownHandler = (window as any).__recordKeyDownHandler;
+      const oldFocusHandler = (window as any).__recordFocusHandler;
+      const oldPasteHandler = (window as any).__recordPasteHandler;
+      const oldCopyHandler = (window as any).__recordCopyHandler;
+      const oldSubmitHandler = (window as any).__recordSubmitHandler;
+      if (oldClickHandler) document.removeEventListener('click', oldClickHandler, true);
+      if (oldInputHandler) {
+        document.removeEventListener('change', oldInputHandler, true);
+        document.removeEventListener('input', oldInputHandler, true);
+      }
+      if (oldKeyDownHandler) document.removeEventListener('keydown', oldKeyDownHandler, true);
+      if (oldFocusHandler) document.removeEventListener('focus', oldFocusHandler, true);
+      if (oldPasteHandler) document.removeEventListener('paste', oldPasteHandler, true);
+      if (oldCopyHandler) document.removeEventListener('copy', oldCopyHandler, true);
+      if (oldSubmitHandler) document.removeEventListener('submit', oldSubmitHandler, true);
+      // Record click events
+      const recordClick = (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        if (!target) return;
+        // Update focused element
+        focusedElement = target;
+        // Get the best selector for the element using a priority-based approach
+        let selector = generateBestSelector(target);
+        // @ts-ignore
+        window.recordAction({
+          type: 'click',
+          selector,
+          timestamp: Date.now()
+        });
+        // If it's an input element, store its current value
+        if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+          lastInputValue = target.value;
+        }
+      };
+      // Record input changes
+      const recordInput = (event: Event) => {
+        const target = event.target as HTMLInputElement;
+        if (!target) return;
+        // Skip if this is a paste event (we'll handle it separately)
+        if (event.type === 'input' && (event as InputEvent).inputType === 'insertFromPaste') {
+          return;
+        }
+        // Get the best selector for the element
+        let selector = generateBestSelector(target);
+        // Only record if the value has changed
+        if (target.value !== lastInputValue) {
+          // @ts-ignore
+          window.recordAction({
+            type: 'fill',
+            selector,
+            value: target.value,
+            timestamp: Date.now()
+          });
+          // Update the last known value
+          lastInputValue = target.value;
+        }
+      };
+      // Record paste events directly
+      const recordPaste = (event: ClipboardEvent) => {
+        if (!focusedElement) return;
+        const target = event.target as HTMLElement;
+        if (!target) return;
+        let selector = generateBestSelector(target);
+        // @ts-ignore
+        window.recordAction({
+          type: 'paste',
+          selector,
+          timestamp: Date.now()
+        });
+        // Prevent recording the pasted text as a separate fill action
+        if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+          setTimeout(() => {
+            lastInputValue = target.value;
+          }, 100);
+        }
+      };
+      // Record copy events directly
+      const recordCopy = (event: ClipboardEvent) => {
+        if (!focusedElement) return;
+        const target = event.target as HTMLElement;
+        if (!target) return;
+        let selector = generateBestSelector(target);
+        // @ts-ignore
+        window.recordAction({
+          type: 'copy',
+          selector,
+          timestamp: Date.now()
+        });
+      };
+      // Record form submissions
+      const recordSubmit = () => {
+        // @ts-ignore
+        window.recordAction({
+          type: 'submit',
+          timestamp: Date.now()
+        });
+      };
+      // Generate the best possible selector for an element
+      const generateBestSelector = (element: HTMLElement): string => {
+        // Priority 0: Check for associated label (highest priority for Playwright)
+        if (element instanceof HTMLInputElement || 
+            element instanceof HTMLSelectElement || 
+            element instanceof HTMLTextAreaElement ||
+            element.tagName.toLowerCase() === 'button') {
+          // Check for explicit label using for/id relationship
+          if (element.id) {
+            const labels = document.querySelectorAll(`label[for="${element.id}"]`);
+            if (labels.length > 0 && labels[0].textContent) {
+              const labelText = labels[0].textContent.trim();
+              if (labelText && labelText.length < 50) {
+                return `getByLabel("${labelText}")`;
+              }
+            }
+          }
+          // Check for implicit label (input is a child of the label)
+          let parent = element.parentElement;
+          while (parent && parent.tagName.toLowerCase() !== 'form') {
+            if (parent.tagName.toLowerCase() === 'label' && parent.textContent) {
+              const labelText = parent.textContent.trim();
+              if (labelText && labelText.length < 50) {
+                return `getByLabel("${labelText}")`;
+              }
+            }
+            parent = parent.parentElement;
+          }
+          // Check for button text (for button elements)
+          if (element.tagName.toLowerCase() === 'button' && element.textContent) {
+            const buttonText = element.textContent.trim();
+            if (buttonText && buttonText.length < 50) {
+              return `getByRole("button", { name: "${buttonText}" })`;
+            }
+          }
+        }
+        // Priority 1: Accessibility attributes
+        // Check for aria-label
+        const ariaLabel = element.getAttribute('aria-label');
+        if (ariaLabel) {
+          return `[aria-label="${ariaLabel}"]`;
+        }
+        // Check for aria-labelledby
+        const ariaLabelledBy = element.getAttribute('aria-labelledby');
+        if (ariaLabelledBy) {
+          const labelElement = document.getElementById(ariaLabelledBy);
+          if (labelElement && labelElement.textContent) {
+            return `[aria-labelledby="${ariaLabelledBy}"]`;
+          }
+        }
+        // Check for role
+        const role = element.getAttribute('role');
+        if (role) {
+          // If element has both role and name, use both for precision
+          const name = element.getAttribute('name');
+          if (name) {
+            return `role=${role}[name="${name}"]`;
+          }
+          // If element has text content, use role with text
+          const text = element.textContent?.trim();
+          if (text && text.length < 50) { // Avoid using very long text
+            return `role=${role}:has-text("${text}")`;
+          }
+          return `role=${role}`;
+        }
+        // Priority 2: Standard HTML attributes
+        // Check for id (most reliable)
+        if (element.id) {
+          return `#${element.id}`;
+        }
+        // Check for data attributes
+        const dataAttributes = Array.from(element.attributes)
+          .filter(attr => attr.name.startsWith('data-'));
+        if (dataAttributes.length > 0) {
+          const dataAttr = dataAttributes[0];
+          return `[${dataAttr.name}="${dataAttr.value}"]`;
+        }
+        // Priority 3: Element type with text content
+        const tag = element.tagName.toLowerCase();
+        const text = element.textContent?.trim();
+        if (text && text.length < 50) { // Avoid using very long text
+          // For buttons, inputs, and links, text-based selectors are reliable
+          if (tag === 'button' || tag === 'a' || element instanceof HTMLInputElement) {
+            return `${tag}:has-text("${text}")`;
+          }
+        }
+        // Priority 4: Element type with attributes
+        if (element instanceof HTMLInputElement) {
+          const type = element.type;
+          const name = element.name;
+          if (name) {
+            return `${tag}[name="${name}"]`;
+          }
+          if (type) {
+            return `${tag}[type="${type}"]`;
+          }
+        }
+        // Priority 5: CSS classes (least reliable, but sometimes necessary)
+        if (element.className && typeof element.className === 'string' && element.className.trim()) {
+          // Use the most specific class to avoid overly complex selectors
+          const classes = element.className.split(' ').filter(c => c.trim());
+          if (classes.length > 0) {
+            // Prefer shorter class names as they're often more meaningful
+            const shortestClass = classes.reduce((a, b) => a.length <= b.length ? a : b);
+            return `${tag}.${shortestClass}`;
+          }
+        }
+        // Fallback: Use tag name or XPath as last resort
+        return tag;
+      };
+      // Record keyboard events
+      const recordKeyDown = (event: KeyboardEvent) => {
+        // Detect clipboard paste events (Cmd+V on Mac, Ctrl+V on Windows/Linux)
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v') {
+          // We'll handle this with the paste event listener instead
+          // This prevents duplicate recording
+          return;
+        }
+        // Detect clipboard copy events (Cmd+C on Mac, Ctrl+C on Windows/Linux)
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
+          // We'll handle this with the copy event listener instead
+          // This prevents duplicate recording
+          return;
+        }
+        // Only record Enter, Tab, Escape and arrow keys as separate actions
+        const specialKeys = ['Enter', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+        if (specialKeys.includes(event.key) && focusedElement) {
+          const target = focusedElement;
+          let selector = generateBestSelector(target);
+          // @ts-ignore
+          window.recordAction({
+            type: 'press',
+            selector,
+            value: event.key,
+            timestamp: Date.now()
+          });
+        }
+      };
+      // Track focus
+      const recordFocus = (event: FocusEvent) => {
+        focusedElement = event.target as HTMLElement;
+      };
+      // Add event listeners
+      document.addEventListener('click', recordClick, true);
+      document.addEventListener('change', recordInput, true);
+      document.addEventListener('input', recordInput, true);
+      document.addEventListener('keydown', recordKeyDown, true);
+      document.addEventListener('focus', recordFocus, true);
+      document.addEventListener('paste', recordPaste, true);
+      document.addEventListener('copy', recordCopy, true);
+      document.addEventListener('submit', recordSubmit, true);
+      // Store references to event handlers for later cleanup
+      (window as any).__recordClickHandler = recordClick;
+      (window as any).__recordInputHandler = recordInput;
+      (window as any).__recordKeyDownHandler = recordKeyDown;
+      (window as any).__recordFocusHandler = recordFocus;
+      (window as any).__recordPasteHandler = recordPaste;
+      (window as any).__recordCopyHandler = recordCopy;
+      (window as any).__recordSubmitHandler = recordSubmit;
+    });
+  }
+  private async setupRecording(): Promise<void> {
+    if (!this.page) return;
+    // Track the last action to prevent duplicates and calculate timing
+    let lastAction: { type: string; selector?: string; value?: string; timestamp: number } | null = null;
+    const debounceTime = 300; // ms - increased to prevent duplicates but not miss inputs
+    // Track the current URL to detect navigations
+    let currentUrl = await this.page.url();
+    // Listen for navigations
+    this.page.on('framenavigated', async frame => {
+      // Only track main frame navigations
+      if (frame === this.page?.mainFrame()) {
+        const newUrl = frame.url();
+        // If this is a new URL (not just a hash change)
+        if (this.isNewNavigation(currentUrl, newUrl)) {
+          const timestamp = Date.now();
+          const timeSincePrevious = lastAction ? timestamp - lastAction.timestamp : 0;
+          // Check if this navigation happened shortly after a user interaction
+          const timeSinceLastInteraction = timestamp - this.lastUserInteractionTime;
+          // Only record the navigation if it didn't happen right after a user interaction
+          // or if it's been more than our threshold since the last interaction
+          if (this.lastUserInteractionTime === 0 || timeSinceLastInteraction > this.navigationThreshold) {
+            // Record the navigation action
+            const navigationAction: RecordedAction = {
+              type: 'goto',
+              value: newUrl,
+              timestamp,
+              timeSincePrevious
+            };
+            this.recordedActions.push(navigationAction);
+            lastAction = navigationAction;
+            // Send status update
+            this.sendStatusUpdate();
+          } else {
+            console.log(`Navigation to ${newUrl} occurred ${timeSinceLastInteraction}ms after user interaction - skipping recording`);
+          }
+          // Update current URL
+          currentUrl = newUrl;
+          // Update the recording tab URL
+          this.recordingTabUrl = newUrl;
+          // Re-attach event listeners on the new page
+          await this.injectRecordingScript();
+        }
+      }
+    });
+    // Listen for actions
+    await this.page.exposeFunction('recordAction', (action: RecordedAction) => {
+      // Check if this is a duplicate action (same type, selector, and value within debounce time)
+      const isDuplicate = lastAction && 
+        action.type === lastAction.type && 
+        action.selector === lastAction.selector && 
+        action.value === lastAction.value &&
+        action.timestamp - lastAction.timestamp < debounceTime;
+      if (!isDuplicate) {
+        // Calculate time since previous action
+        if (lastAction) {
+          action.timeSincePrevious = action.timestamp - lastAction.timestamp;
+        }
+        // Update the last user interaction time for click, press, and fill actions
+        if (action.type === 'click' || action.type === 'press' || action.type === 'fill') {
+          this.lastUserInteractionTime = action.timestamp;
+        }
+        this.recordedActions.push(action);
+        lastAction = action;
+        // Send status update whenever an action is recorded
+        this.sendStatusUpdate();
+      }
+    });
+    // Inject initial recording script
+    await this.injectRecordingScript();
+  }
+  private sendStatusUpdate(): void {
+    chrome.runtime.sendMessage({
+      type: 'RECORDING_STATUS_UPDATE',
+      isRecording: this.isRecording,
+      actions: this.recordedActions,
+      tabUrl: this.recordingTabUrl
+    });
+  }
+  generateScript(name: string, description: string): ScriptDefinition {
+    const scriptId = `recorded_${Date.now()}`;
+    const scriptCode = this.generateScriptString(name, description);
+    return {
+      id: scriptId,
+      name,
+      description,
+      useCurrentTab: true,
+      // Use the interpreter to execute the script code
+      run: async (ctx: ScriptContext) => {
+        try {
+          ctx.log(`Starting recorded script: ${name}`);
+          await executeScript(scriptCode, ctx);
+          ctx.log(`Recorded script completed: ${name}`);
+        } catch (error) {
+          ctx.log(
+            `Error executing script: ${error instanceof Error ? error.message : String(error)}`
+          );
+          throw error;
+        }
+      },
+      source: 'local',
+      lastUpdated: Date.now(),
+      // Store the original script code for later use
+      code: scriptCode
+    };
+  }
+  generateScriptString(name: string, description: string): string {
+    const actions = [...this.recordedActions];
+    // Check if there are any paste or copy actions in the recorded actions
+    const hasPasteActions = actions.some(action => action.type === 'paste');
+    const hasCopyActions = actions.some(action => action.type === 'copy');
+    const hasClipboardActions = hasPasteActions || hasCopyActions;
+    // Create a script that can be directly executed by the interpreter
+    // The interpreter expects plain JavaScript code, not a module with imports/exports
+    let scriptCode = `
+// Script: ${this.escapeString(name)}
+// Description: ${this.escapeString(description)}
+// Generated: ${new Date().toLocaleString()}
+const { page, log } = ctx;
+log('Starting script execution');
+`;
+    // Add clipboard helper functions if needed
+    if (hasClipboardActions) {
+      scriptCode += `
+// Use a cross-platform approach for clipboard operations
+`;
+      if (hasPasteActions) {
+        scriptCode += `
+// Helper function for paste operations
+const tryPaste = async (selector) => {
+  try {
+    // Try Mac shortcut first
+    await page.focus(selector);
+    await page.keyboard.press('Meta+V');
+  } catch (error) {
+    // If that fails, try Windows/Linux shortcut
+    await page.focus(selector);
+    await page.keyboard.press('Control+V');
+  }
+};
+`;
+      }
+      if (hasCopyActions) {
+        scriptCode += `
+// Helper function for copy operations
+const tryCopy = async (selector) => {
+  try {
+    // Try Mac shortcut first
+    await page.focus(selector);
+    await page.keyboard.press('Meta+C');
+  } catch (error) {
+    // If that fails, try Windows/Linux shortcut
+    await page.focus(selector);
+    await page.keyboard.press('Control+C');
+  }
+};
+`;
+      }
+    }
+    // Add each action with appropriate logging and timing
+    actions.forEach((action) => {
+      // Add wait time if significant (more than 500ms)
+      if (action.timeSincePrevious && action.timeSincePrevious > 500) {
+        // Round to nearest 100ms for readability
+        const waitTime = Math.round(action.timeSincePrevious / 100) * 100;
+        scriptCode += `log('Waiting for ${waitTime}ms...');\n`;
+        scriptCode += `await page.waitForTimeout(${waitTime});\n\n`;
+      }
+      if (action.type === 'click') {
+        scriptCode += `log('Clicking on ${action.selector || 'element'}...');\n`;
+        // Handle different selector formats
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `await page.${action.selector}.click();\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `await page.${action.selector}.click();\n\n`;
+          } else {
+            scriptCode += `await page.click('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `// Warning: No selector available for this click action\n\n`;
+        }
+      } else if (action.type === 'fill' && action.value) {
+        scriptCode += `log('Filling ${action.selector || 'element'} with text...');\n`;
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
+          } else {
+            scriptCode += `await page.fill('${this.escapeSelector(action.selector)}', '${this.escapeString(action.value)}');\n\n`;
+          }
+        } else {
+          scriptCode += `// Warning: No selector available for this fill action\n\n`;
+        }
+      } else if (action.type === 'paste') {
+        scriptCode += `log('Pasting clipboard content into ${action.selector || 'element'}...');\n`;
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `await page.${action.selector}.focus();\n`;
+            scriptCode += `try {\n`;
+            scriptCode += `  await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `} catch (error) {\n`;
+            scriptCode += `  await page.keyboard.press('Control+V');\n`;
+            scriptCode += `}\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `await page.${action.selector}.focus();\n`;
+            scriptCode += `try {\n`;
+            scriptCode += `  await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `} catch (error) {\n`;
+            scriptCode += `  await page.keyboard.press('Control+V');\n`;
+            scriptCode += `}\n\n`;
+          } else {
+            scriptCode += `await tryPaste('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `// Warning: No selector available for this paste action\n\n`;
+        }
+      } else if (action.type === 'copy') {
+        scriptCode += `log('Copying content from ${action.selector || 'element'}...');\n`;
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `await page.${action.selector}.focus();\n`;
+            scriptCode += `try {\n`;
+            scriptCode += `  await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `} catch (error) {\n`;
+            scriptCode += `  await page.keyboard.press('Control+C');\n`;
+            scriptCode += `}\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `await page.${action.selector}.focus();\n`;
+            scriptCode += `try {\n`;
+            scriptCode += `  await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `} catch (error) {\n`;
+            scriptCode += `  await page.keyboard.press('Control+C');\n`;
+            scriptCode += `}\n\n`;
+          } else {
+            scriptCode += `await tryCopy('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `// Warning: No selector available for this copy action\n\n`;
+        }
+      } else if (action.type === 'press' && action.value) {
+        scriptCode += `log('Pressing ${action.value} key...');\n`;
+        scriptCode += `await page.keyboard.press('${this.escapeString(action.value)}');\n\n`;
+      } else if (action.type === 'goto' && action.value) {
+        scriptCode += `log('Navigating to ${action.value}...');\n`;
+        scriptCode += `await page.goto('${this.escapeString(action.value)}');\n\n`;
+      }
+    });
+    scriptCode += `log('Script completed successfully');\n`;
+    return scriptCode;
+  }
+  // This method generates a complete module script for copying to clipboard
+  generateCompleteScriptString(name: string, description: string): string {
+    const actions = [...this.recordedActions];
+    // Check if there are any paste or copy actions in the recorded actions
+    const hasPasteActions = actions.some(action => action.type === 'paste');
+    const hasCopyActions = actions.some(action => action.type === 'copy');
+    const hasClipboardActions = hasPasteActions || hasCopyActions;
+    // Create a formatted script in the same style as github.ts
+    let scriptCode = `import type { ScriptDefinition } from '../core/types';
+const script: ScriptDefinition = {
+  id: '${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}',
+  name: '${this.escapeString(name)}',
+  description: '${this.escapeString(description)}',
+  useCurrentTab: true,
+  async run(ctx) {
+    const { page, log } = ctx;
+    `;
+    // Add platform detection code at the beginning if there are paste actions
+    if (hasClipboardActions) {
+      scriptCode += `
+    // Use a cross-platform approach for clipboard operations
+`;
+      if (hasPasteActions) {
+        scriptCode += `
+    // Helper function for paste operations
+    const tryPaste = async (selector) => {
+      try {
+        // Try Mac shortcut first
+        await page.focus(selector);
+        await page.keyboard.press('Meta+V');
+      } catch (error) {
+        // If that fails, try Windows/Linux shortcut
+        await page.focus(selector);
+        await page.keyboard.press('Control+V');
+      }
+    };
+`;
+      }
+      if (hasCopyActions) {
+        scriptCode += `
+    // Helper function for copy operations
+    const tryCopy = async (selector) => {
+      try {
+        // Try Mac shortcut first
+        await page.focus(selector);
+        await page.keyboard.press('Meta+C');
+      } catch (error) {
+        // If that fails, try Windows/Linux shortcut
+        await page.focus(selector);
+        await page.keyboard.press('Control+C');
+      }
+    };
+`;
+      }
+    }
+    // Add each action with appropriate logging and timing
+    actions.forEach((action) => {
+      // Add wait time if significant (more than 500ms)
+      if (action.timeSincePrevious && action.timeSincePrevious > 500) {
+        // Round to nearest 100ms for readability
+        const waitTime = Math.round(action.timeSincePrevious / 100) * 100;
+        scriptCode += `    log('Waiting for ${waitTime}ms...');\n`;
+        scriptCode += `    await page.waitForTimeout(${waitTime});\n\n`;
+      }
+      if (action.type === 'click') {
+        scriptCode += `    log('Clicking on ${action.selector || 'element'}...');\n`;
+        // Handle different selector formats
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `    await page.${action.selector}.click();\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `    await page.${action.selector}.click();\n\n`;
+          } else {
+            scriptCode += `    await page.click('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `    // Warning: No selector available for this click action\n\n`;
+        }
+      } else if (action.type === 'fill' && action.value) {
+        scriptCode += `    log('Filling ${action.selector || 'element'} with text...');\n`;
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `    await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `    await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
+          } else {
+            scriptCode += `    await page.fill('${this.escapeSelector(action.selector)}', '${this.escapeString(action.value)}');\n\n`;
+          }
+        } else {
+          scriptCode += `    // Warning: No selector available for this fill action\n\n`;
+        }
+      } else if (action.type === 'paste') {
+        scriptCode += `    log('Pasting clipboard content into ${action.selector || 'element'}...');\n`;
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `    await page.${action.selector}.focus();\n`;
+            scriptCode += `    try {\n`;
+            scriptCode += `      await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `    } catch (error) {\n`;
+            scriptCode += `      await page.keyboard.press('Control+V');\n`;
+            scriptCode += `    }\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `    await page.${action.selector}.focus();\n`;
+            scriptCode += `    try {\n`;
+            scriptCode += `      await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `    } catch (error) {\n`;
+            scriptCode += `      await page.keyboard.press('Control+V');\n`;
+            scriptCode += `    }\n\n`;
+          } else {
+            scriptCode += `    await tryPaste('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `    // Warning: No selector available for this paste action\n\n`;
+        }
+      } else if (action.type === 'copy') {
+        scriptCode += `    log('Copying content from ${action.selector || 'element'}...');\n`;
+        if (action.selector) {
+          if (action.selector.startsWith('getByLabel(')) {
+            scriptCode += `    await page.${action.selector}.focus();\n`;
+            scriptCode += `    try {\n`;
+            scriptCode += `      await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `    } catch (error) {\n`;
+            scriptCode += `      await page.keyboard.press('Control+C');\n`;
+            scriptCode += `    }\n\n`;
+          } else if (action.selector.startsWith('getByRole(')) {
+            scriptCode += `    await page.${action.selector}.focus();\n`;
+            scriptCode += `    try {\n`;
+            scriptCode += `      await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `    } catch (error) {\n`;
+            scriptCode += `      await page.keyboard.press('Control+C');\n`;
+            scriptCode += `    }\n\n`;
+          } else {
+            scriptCode += `    await tryCopy('${this.escapeSelector(action.selector)}');\n\n`;
+          }
+        } else {
+          scriptCode += `    // Warning: No selector available for this copy action\n\n`;
+        }
+      } else if (action.type === 'press' && action.value) {
+        scriptCode += `    log('Pressing ${action.value} key...');\n`;
+        scriptCode += `    await page.keyboard.press('${this.escapeString(action.value)}');\n\n`;
+      } else if (action.type === 'goto' && action.value) {
+        scriptCode += `    log('Navigating to ${action.value}...');\n`;
+        scriptCode += `    await page.goto('${this.escapeString(action.value)}');\n\n`;
+      }
+    });
+    scriptCode += `    log('Script completed successfully');\n`;
+    scriptCode += `  }\n};\n\nexport default script;`;
+    return scriptCode;
+  }
+  isCurrentlyRecording(): boolean {
+    return this.isRecording;
+  }
+  getRecordedActions(): RecordedAction[] {
+    return [...this.recordedActions];
+  }
+  getRecordingState(): { isRecording: boolean; actions: RecordedAction[]; tabId?: number; tabUrl?: string } {
+    return {
+      isRecording: this.isRecording,
+      actions: [...this.recordedActions],
+      tabId: this.tabId || undefined,
+      tabUrl: this.recordingTabUrl || undefined
+    };
+  }
+  async getTraceData(): Promise<Uint8Array | null> {
+    return this.traceData;
+  }
+  // Helper to determine if a navigation is to a new page (not just a hash change)
+  private isNewNavigation(oldUrl: string, newUrl: string): boolean {
+    try {
+      const oldUrlObj = new URL(oldUrl);
+      const newUrlObj = new URL(newUrl);
+      // Compare everything except the hash
+      return oldUrlObj.origin !== newUrlObj.origin || 
+             oldUrlObj.pathname !== newUrlObj.pathname ||
+             oldUrlObj.search !== newUrlObj.search;
+    } catch (e) {
+      // If URLs can't be parsed, consider it a new navigation
+      return oldUrl !== newUrl;
+    }
+  }
+}
+export const recordingService = new RecordingService();
+</file>
+
+<file path="src/popup.ts">
+import type { RecordedAction, ScriptDefinition, ScriptExecutionResult } from './core/types';
+import { getAvailableScripts, syncRemoteScripts } from './core/registry';
+class PopupUI {
+  private scriptsList: HTMLDivElement;
+  private logsContainer: HTMLDivElement;
+  private logsContent: HTMLPreElement;
+  private logsToggle: HTMLDivElement;
+  private syncButton: HTMLButtonElement;
+  private recordButton: HTMLButtonElement;
+  private recordingModal: HTMLDivElement;
+  private recordingOptions: HTMLDivElement;
+  private recordingStatus: HTMLDivElement;
+  private saveRecordingForm: HTMLDivElement;
+  private startRecordingBtn: HTMLButtonElement;
+  private stopRecordingBtn: HTMLButtonElement;
+  private copyScriptBtn: HTMLButtonElement;
+  private saveScriptBtn: HTMLButtonElement;
+  private closeRecordingModalBtn: HTMLButtonElement;
+  private actionsCount: HTMLSpanElement;
+  private actionsSummary: HTMLSpanElement;
+  private scriptName: HTMLInputElement;
+  private scriptDescription: HTMLInputElement;
+  private recordingModalTitle: HTMLHeadingElement;
+  private parametersModal: HTMLDivElement | null = null;
+  private downloadTraceBtn: HTMLButtonElement;
+  private scripts: ScriptDefinition[] = [];
+  private isSyncing = false;
+  private isRecording = false;
+  private recordedActions: RecordedAction[] = [];
+  private isExecuting = false;
+  constructor() {
+    this.scriptsList = document.getElementById('scriptsList') as HTMLDivElement;
+    this.logsContainer = document.getElementById('logsContainer') as HTMLDivElement;
+    this.logsContent = document.getElementById('logsContent') as HTMLPreElement;
+    this.logsToggle = document.getElementById('logsToggle') as HTMLDivElement;
+    this.syncButton = document.getElementById('syncButton') as HTMLButtonElement;
+    this.recordButton = document.getElementById('recordButton') as HTMLButtonElement;
+    this.recordingModal = document.getElementById('recordingModal') as HTMLDivElement;
+    this.recordingOptions = document.getElementById('recordingOptions') as HTMLDivElement;
+    this.recordingStatus = document.getElementById('recordingStatus') as HTMLDivElement;
+    this.saveRecordingForm = document.getElementById('saveRecordingForm') as HTMLDivElement;
+    this.startRecordingBtn = document.getElementById('startRecordingBtn') as HTMLButtonElement;
+    this.stopRecordingBtn = document.getElementById('stopRecordingBtn') as HTMLButtonElement;
+    this.copyScriptBtn = document.getElementById('copyScriptBtn') as HTMLButtonElement;
+    this.saveScriptBtn = document.getElementById('saveScriptBtn') as HTMLButtonElement;
+    this.closeRecordingModalBtn = document.getElementById('closeRecordingModalBtn') as HTMLButtonElement;
+    this.actionsCount = document.getElementById('actionsCount') as HTMLSpanElement;
+    this.actionsSummary = document.getElementById('actionsSummary') as HTMLSpanElement;
+    this.scriptName = document.getElementById('scriptName') as HTMLInputElement;
+    this.scriptDescription = document.getElementById('scriptDescription') as HTMLInputElement;
+    this.recordingModalTitle = document.getElementById('recordingModalTitle') as HTMLHeadingElement;
+    this.downloadTraceBtn = document.getElementById('downloadTraceBtn') as HTMLButtonElement;
+    this.initializeEventListeners();
+    // Check if recording is in progress when popup opens
+    this.checkRecordingState();
+    // Always force sync when opening popup
+    this.loadScripts(true);
+    // Check for existing execution state when popup opens
+    this.checkExecutionState();
+  }
+  private async loadScripts(forceSync = false) {
+    try {
+      // Get all scripts (local + remote)
+      this.scripts = await getAvailableScripts(forceSync);
+      this.renderScriptsList(this.scripts);
+    } catch (error) {
+      this.showLogs([`Error loading scripts: ${error instanceof Error ? error.message : String(error)}`], true);
+    }
+  }
+  private renderScriptsList(scripts: ScriptDefinition[]) {
+    this.scriptsList.innerHTML = '';
+    scripts.forEach((script, index) => {
+      // Add a small delay to each item for a staggered animation effect
+      setTimeout(() => {
+        const scriptElement = document.createElement('div');
+        scriptElement.className = 'script-item';
+        // Add a badge for remote scripts
+        const sourceBadge = script.source === 'remote' 
+          ? '<span class="badge remote-badge">Remote</span>' 
+          : '';
+        // Only show delete button for locally recorded scripts (not remote scripts or built-in scripts)
+        const deleteButton = script.source === 'local' && !script.isRemote
+          ? `<button class="secondary-button delete-script" data-id="${script.id}" title="Delete script">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+              </svg>
+            </button>`
+          : '';
+        scriptElement.innerHTML = `
+          <div class="script-info">
+            <strong>${script.name} ${sourceBadge}</strong>
+            <small>${script.description}</small>
+          </div>
+          <div class="script-actions">
+            <button class="primary-button run-script" data-id="${script.id}">Run</button>
+            ${deleteButton}
+          </div>
+        `;
+        this.scriptsList.appendChild(scriptElement);
+      }, index * 50); // Stagger each item by 50ms
+    });
+    // Add event listeners for delete buttons
+    setTimeout(() => {
+      const deleteButtons = document.querySelectorAll('.delete-script');
+      deleteButtons.forEach(button => {
+        button.addEventListener('click', (event) => {
+          event.stopPropagation(); // Prevent bubbling to parent elements
+          const scriptId = (button as HTMLElement).dataset.id;
+          if (scriptId) {
+            this.deleteScript(scriptId);
+          }
+        });
+      });
+    }, scripts.length * 50 + 100); // Add a little extra time to ensure all items are rendered
+  }
+  private showLogs(logs: string[], isComplete = false) {
+    // Make sure logs are not empty
+    if (!logs || logs.length === 0) {
+      logs = ['No logs available'];
+    }
+    this.logsContent.textContent = logs.join('\n');
+    this.logsContent.scrollTop = this.logsContent.scrollHeight;
+    // Show the logs toggle button if not already visible
+    if (!this.logsToggle.classList.contains('visible')) {
+      this.logsToggle.classList.add('visible');
+    }
+    // Always show logs container when logs are updated
+    this.logsContainer.classList.add('active');
+    // If logs are complete and container is not active, show a notification effect
+    if (isComplete && !this.isExecuting) {
+      this.logsToggle.classList.add('pulse');
+      setTimeout(() => this.logsToggle.classList.remove('pulse'), 1000);
+    }
+  }
+  private toggleLogs() {
+    this.logsContainer.classList.toggle('active');
+  }
+  private async syncScripts() {
+    if (this.isSyncing) return;
+    this.isSyncing = true;
+    this.syncButton.classList.add('syncing');
+    try {
+      await syncRemoteScripts();
+      this.scripts = await getAvailableScripts(true);
+      this.renderScriptsList(this.scripts);
+    } catch (error) {
+      this.showLogs([`Error syncing scripts: ${error instanceof Error ? error.message : String(error)}`], true);
+    } finally {
+      this.isSyncing = false;
+      this.syncButton.classList.remove('syncing');
+    }
+  }
+  private initializeEventListeners() {
+    // Listen for script execution updates
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'SCRIPT_LOG_UPDATE') {
+        this.isExecuting = message.isExecuting;
+        this.showLogs(message.logs, !message.isExecuting);
+      }
+      return true;
+    });
+    // Sync button
+    this.syncButton.addEventListener('click', () => {
+      this.syncScripts();
+    });
+    // Record button
+    this.recordButton.addEventListener('click', () => {
+      this.openRecordingModal();
+    });
+    // Close recording modal
+    this.closeRecordingModalBtn.addEventListener('click', () => {
+      if (this.isRecording) {
+        this.stopRecording();
+      } else {
+        // Clear the recorded actions
+        this.recordedActions = [];
+        // Reset the recording state in the background service
+        chrome.runtime.sendMessage({
+          type: 'DISCARD_RECORDING'
+        });
+        // Close the modal
+        this.closeRecordingModal();
+      }
+    });
+    // Start recording button
+    this.startRecordingBtn.addEventListener('click', () => {
+      const useCurrentTab = (document.querySelector('input[name="tabOption"]:checked') as HTMLInputElement)?.value === 'current';
+      this.startRecording(useCurrentTab);
+    });
+    // Stop recording button
+    this.stopRecordingBtn.addEventListener('click', () => {
+      this.stopRecording();
+    });
+    // Copy script button
+    this.copyScriptBtn.addEventListener('click', () => {
+      this.copyScriptToClipboard();
+    });
+    // Save script button
+    this.saveScriptBtn.addEventListener('click', () => {
+      this.saveRecordedScript();
+    });
+    // Download trace button
+    this.downloadTraceBtn.addEventListener('click', () => {
+      this.downloadTraceFile();
+    });
+    // Listen for recording status updates
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'RECORDING_STATUS_UPDATE') {
+        this.isRecording = message.isRecording;
+        this.recordedActions = message.actions;
+        this.updateRecordingUI();
+        // Update the tab URL if available
+        if (message.tabUrl) {
+          this.updateRecordingTabInfo(message.tabUrl);
+        }
+      } else if (message.type === 'SCRIPT_LOG_UPDATE') {
+        this.showLogs(message.logs);
+      }
+    });
+    // Close logs button
+    document.getElementById('closeLogsBtn')?.addEventListener('click', () => {
+      this.logsContainer.classList.remove('active');
+    });
+    // Logs toggle
+    this.logsToggle.addEventListener('click', () => {
+      this.toggleLogs();
+    });
+    // Delegate click events for script actions
+    this.scriptsList.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      if (!target.matches('button')) return;
+      const scriptId = target.getAttribute('data-id');
+      if (!scriptId) return;
+      console.log(`Running script with ID: ${scriptId}`);
+      if (target.matches('.run-script')) {
+        // Add a running indicator to the button
+        const button = target as HTMLButtonElement;
+        const originalText = button.textContent;
+        // Find the script
+        const script = this.scripts.find(s => s.id === scriptId);
+        if (script && script.parameters && script.parameters.length > 0) {
+          // If the script has parameters, show the parameters modal
+          this.showParametersModal(script, button);
+        } else {
+          // If no parameters, run the script directly
+          button.innerHTML = '<span class="status-indicator running"></span>Running...';
+          button.disabled = true;
+          // Show logs container immediately with initial message
+          this.showLogs([`Starting script execution for script ID: ${scriptId}...`]);
+          try {
+            const result = await this.runScript(scriptId);
+            // Update button to show success/error
+            if (result.success) {
+              button.innerHTML = '<span class="status-indicator success"></span>Success';
+            } else {
+              button.innerHTML = '<span class="status-indicator error"></span>Failed';
+            }
+            // Reset button after 2 seconds
+            setTimeout(() => {
+              button.innerHTML = originalText || 'Run';
+              button.disabled = false;
+            }, 2000);
+          } catch (error) {
+            console.error('Error running script:', error);
+            this.showLogs([`Error running script: ${error instanceof Error ? error.message : String(error)}`], true);
+            button.innerHTML = '<span class="status-indicator error"></span>Error';
+            setTimeout(() => {
+              button.innerHTML = originalText || 'Run';
+              button.disabled = false;
+            }, 2000);
+          }
+        }
+      }
+    });
+  }
+  private openRecordingModal() {
+    // Reset the modal state
+    this.recordingOptions.style.display = 'block';
+    this.recordingStatus.style.display = 'none';
+    this.saveRecordingForm.style.display = 'none';
+    this.recordingModalTitle.textContent = 'Start Recording';
+    this.downloadTraceBtn.style.display = 'none';
+    // Reset recording tab info
+    const recordingTabInfo = document.getElementById('recordingTabInfo');
+    if (recordingTabInfo) {
+      recordingTabInfo.textContent = '';
+      recordingTabInfo.style.display = 'none';
+    }
+    // Show the modal
+    this.recordingModal.classList.add('active');
+  }
+  private closeRecordingModal() {
+    this.recordingModal.classList.remove('active');
+  }
+  private async startRecording(useCurrentTab: boolean) {
+    try {
+      const success = await chrome.runtime.sendMessage({
+        type: 'START_RECORDING',
+        useCurrentTab
+      });
+      if (success) {
+        this.isRecording = true;
+        this.recordedActions = [];
+        this.updateRecordingUI();
+        // If using current tab, close the popup to let the user interact with the page
+        if (useCurrentTab) {
+          window.close();
+        }
+      } else {
+        // Show error in the UI instead of an alert
+        this.startRecordingBtn.textContent = 'Failed to start';
+        this.startRecordingBtn.classList.add('error');
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          this.startRecordingBtn.textContent = 'Start Recording';
+          this.startRecordingBtn.classList.remove('error');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      // Show error in the UI instead of an alert
+      this.startRecordingBtn.textContent = 'Error';
+      this.startRecordingBtn.classList.add('error');
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        this.startRecordingBtn.textContent = 'Start Recording';
+        this.startRecordingBtn.classList.remove('error');
+      }, 2000);
+    }
+  }
+  private async stopRecording() {
+    try {
+      const actions = await chrome.runtime.sendMessage({
+        type: 'STOP_RECORDING'
+      });
+      this.isRecording = false;
+      this.recordedActions = actions;
+      this.updateRecordingUI();
+      // Set default name and description
+      const timestamp = new Date().toLocaleString();
+      this.scriptName.value = `Recorded Script ${timestamp}`;
+      this.scriptDescription.value = `Script recorded on ${timestamp}`;
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      // Show error in the UI instead of an alert
+      this.stopRecordingBtn.textContent = 'Error';
+      this.stopRecordingBtn.classList.add('error');
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        this.stopRecordingBtn.textContent = 'Stop Recording';
+        this.stopRecordingBtn.classList.remove('error');
+      }, 2000);
+    }
+  }
+  private updateRecordingUI() {
+    // Reset recording tab info display
+    const recordingTabInfo = document.getElementById('recordingTabInfo');
+    if (recordingTabInfo) {
+      recordingTabInfo.style.display = this.isRecording ? 'block' : 'none';
+    }
+    if (this.isRecording) {
+      // Show recording status
+      this.recordingOptions.style.display = 'none';
+      this.recordingStatus.style.display = 'block';
+      this.saveRecordingForm.style.display = 'none';
+      this.recordingModalTitle.textContent = 'Recording in Progress';
+      this.downloadTraceBtn.style.display = 'none';
+    } else if (this.recordedActions.length > 0) {
+      // Show copy form
+      this.recordingOptions.style.display = 'none';
+      this.recordingStatus.style.display = 'none';
+      this.saveRecordingForm.style.display = 'block';
+      this.recordingModalTitle.textContent = 'Recording Complete';
+      this.downloadTraceBtn.style.display = 'inline-block';
+    } else {
+      // Show options
+      this.recordingOptions.style.display = 'block';
+      this.recordingStatus.style.display = 'none';
+      this.saveRecordingForm.style.display = 'none';
+      this.recordingModalTitle.textContent = 'Start Recording';
+      this.downloadTraceBtn.style.display = 'none';
+    }
+    // Update action counts
+    this.actionsCount.textContent = this.recordedActions.length.toString();
+    this.actionsSummary.textContent = this.recordedActions.length.toString();
+  }
+  private async runScript(scriptId: string, parameters?: Record<string, any>): Promise<ScriptExecutionResult> {
+    try {
+      console.log(`Sending message to execute script: ${scriptId}`);
+      const result = await chrome.runtime.sendMessage({
+        type: 'EXECUTE_SCRIPT',
+        scriptId,
+        parameters
+      }) as ScriptExecutionResult;
+      console.log(`Received execution result:`, result);
+      // If logs are empty, add a default message
+      if (!result.logs || result.logs.length === 0) {
+        result.logs = result.success 
+          ? ['Script executed successfully but no logs were generated.'] 
+          : [`Script failed: ${result.error || 'Unknown error'}`];
+      }
+      this.showLogs(result.logs, true);
+      return result;
+    } catch (error) {
+      console.error('Failed to execute script:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.showLogs([`Error: ${errorMessage}`], true);
+      return {
+        success: false,
+        error: errorMessage,
+        logs: [`Error: ${errorMessage}`]
+      };
+    }
+  }
+  private async checkRecordingState() {
+    try {
+      const state = await chrome.runtime.sendMessage({
+        type: 'GET_RECORDING_STATE'
+      });
+      if (state) {
+        this.isRecording = state.isRecording;
+        this.recordedActions = state.actions;
+        // Update UI based on recording state
+        if (this.isRecording || this.recordedActions.length > 0) {
+          this.openRecordingModal();
+          this.updateRecordingUI();
+          // If recording is in progress, show the tab URL
+          if (this.isRecording && state.tabUrl) {
+            this.updateRecordingTabInfo(state.tabUrl);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking recording state:', error);
+    }
+  }
+  private updateRecordingTabInfo(url: string) {
+    const recordingTabInfo = document.getElementById('recordingTabInfo');
+    if (recordingTabInfo) {
+      recordingTabInfo.textContent = `Recording in: ${url}`;
+      recordingTabInfo.style.display = 'block';
+    }
+  }
+  private async copyScriptToClipboard() {
+    try {
+      const name = this.scriptName.value.trim() || `Recorded Script ${new Date().toLocaleString()}`;
+      const description = this.scriptDescription.value.trim() || `Script recorded on ${new Date().toLocaleString()}`;
+      // Get the script code from the background service
+      const scriptCode = await chrome.runtime.sendMessage({
+        type: 'GET_SCRIPT_CODE',
+        scriptName: name,
+        scriptDescription: description
+      });
+      // Copy to clipboard
+      await navigator.clipboard.writeText(scriptCode);
+      // Show success message in the UI (not an alert)
+      const copyBtn = this.copyScriptBtn;
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      copyBtn.disabled = true;
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.disabled = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Error copying script to clipboard:', error);
+      // Show error in the UI instead of an alert
+      const copyBtn = this.copyScriptBtn;
+      copyBtn.textContent = 'Error!';
+      copyBtn.classList.add('error');
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy Script';
+        copyBtn.classList.remove('error');
+      }, 2000);
+    }
+  }
+  private async saveRecordedScript() {
+    try {
+      const name = this.scriptName.value.trim() || `Recorded Script ${new Date().toLocaleString()}`;
+      const description = this.scriptDescription.value.trim() || `Script recorded on ${new Date().toLocaleString()}`;
+      // Save the script via the background service
+      const success = await chrome.runtime.sendMessage({
+        type: 'SAVE_RECORDED_SCRIPT',
+        scriptName: name,
+        scriptDescription: description
+      });
+      if (success) {
+        // Show success message in the UI
+        const saveBtn = this.saveScriptBtn;
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = 'Saved!';
+        saveBtn.disabled = true;
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          saveBtn.textContent = originalText;
+          saveBtn.disabled = false;
+          // Close the recording modal and refresh the scripts list
+          this.closeRecordingModal();
+          this.loadScripts(true);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error saving script:', error);
+      // Show error in the UI
+      const saveBtn = this.saveScriptBtn;
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = 'Error!';
+      saveBtn.classList.add('error');
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        saveBtn.textContent = originalText;
+        saveBtn.classList.remove('error');
+      }, 2000);
+    }
+  }
+  private async deleteScript(scriptId: string) {
+    try {
+      // Find the script element in the DOM
+      const scriptElement = document.querySelector(`.script-item button[data-id="${scriptId}"]`)?.closest('.script-item') as HTMLElement;
+      if (!scriptElement) return;
+      // Show deletion in progress
+      const deleteButton = scriptElement.querySelector('.delete-script') as HTMLButtonElement;
+      if (!deleteButton) return;
+      const originalContent = deleteButton.innerHTML;
+      deleteButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="deleting-icon">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+        </svg>
+      `;
+      deleteButton.disabled = true;
+      // Send delete request to background
+      const success = await chrome.runtime.sendMessage({
+        type: 'DELETE_SCRIPT',
+        scriptId
+      });
+      if (success) {
+        // Animate the removal of the script element
+        scriptElement.style.transition = 'all 0.3s ease';
+        scriptElement.style.opacity = '0';
+        scriptElement.style.height = '0';
+        scriptElement.style.overflow = 'hidden';
+        // After animation, remove the element and refresh the list
+        setTimeout(() => {
+          scriptElement.remove();
+          this.loadScripts(true);
+        }, 300);
+      } else {
+        // Show error state
+        deleteButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        `;
+        deleteButton.classList.add('error');
+        // Reset after 2 seconds
+        setTimeout(() => {
+          deleteButton.innerHTML = originalContent;
+          deleteButton.classList.remove('error');
+          deleteButton.disabled = false;
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error deleting script:', error);
+      // Find the script element and show error state
+      const deleteButton = document.querySelector(`.script-item button[data-id="${scriptId}"]`) as HTMLButtonElement;
+      if (deleteButton) {
+        deleteButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        `;
+        deleteButton.classList.add('error');
+        // Reset after 2 seconds
+        setTimeout(() => {
+          deleteButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+            </svg>
+          `;
+          deleteButton.classList.remove('error');
+          deleteButton.disabled = false;
+        }, 2000);
+      }
+    }
+  }
+  // Create and show a modal for entering script parameters
+  private showParametersModal(script: ScriptDefinition, runButton: HTMLButtonElement) {
+    // Create the modal if it doesn't exist
+    if (!this.parametersModal) {
+      this.parametersModal = document.createElement('div');
+      this.parametersModal.className = 'modal parameters-modal';
+      document.body.appendChild(this.parametersModal);
+    }
+    // Clear any existing content
+    this.parametersModal.innerHTML = '';
+    // Create the modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    // Add a header
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+    header.innerHTML = `
+      <h3>Configure Parameters for "${script.name}"</h3>
+      <button class="close-button" id="closeParametersBtn">&times;</button>
+    `;
+    modalContent.appendChild(header);
+    // Add a form for the parameters
+    const form = document.createElement('form');
+    form.id = 'parametersForm';
+    // Add fields for each parameter
+    script.parameters?.forEach(param => {
+      const formGroup = document.createElement('div');
+      formGroup.className = 'form-group';
+      const label = document.createElement('label');
+      label.setAttribute('for', `param-${param.name}`);
+      label.textContent = param.name;
+      const description = document.createElement('small');
+      description.textContent = param.description;
+      const input = document.createElement('input');
+      input.id = `param-${param.name}`;
+      input.name = param.name;
+      // Set input type based on parameter type
+      if (param.type === 'number') {
+        input.type = 'number';
+      } else if (param.type === 'boolean') {
+        input.type = 'checkbox';
+      } else {
+        input.type = 'text';
+      }
+      // Set default value if available
+      if (param.default !== undefined) {
+        if (param.type === 'boolean') {
+          (input as HTMLInputElement).checked = Boolean(param.default);
+        } else {
+          input.value = String(param.default);
+        }
+      }
+      // Mark required fields
+      if (param.required) {
+        input.required = true;
+        label.innerHTML += ' <span class="required">*</span>';
+      }
+      formGroup.appendChild(label);
+      formGroup.appendChild(description);
+      formGroup.appendChild(input);
+      form.appendChild(formGroup);
+    });
+    // Add buttons
+    const buttons = document.createElement('div');
+    buttons.className = 'modal-buttons';
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'secondary-button';
+    cancelButton.textContent = 'Cancel';
+    cancelButton.id = 'cancelParametersBtn';
+    const runWithParamsButton = document.createElement('button');
+    runWithParamsButton.type = 'submit';
+    runWithParamsButton.className = 'primary-button';
+    runWithParamsButton.textContent = 'Run Script';
+    buttons.appendChild(cancelButton);
+    buttons.appendChild(runWithParamsButton);
+    form.appendChild(buttons);
+    modalContent.appendChild(form);
+    this.parametersModal.appendChild(modalContent);
+    // Show the modal
+    this.parametersModal.classList.add('active');
+    // Add event listeners
+    document.getElementById('closeParametersBtn')?.addEventListener('click', () => {
+      this.parametersModal?.classList.remove('active');
+    });
+    document.getElementById('cancelParametersBtn')?.addEventListener('click', () => {
+      this.parametersModal?.classList.remove('active');
+    });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      // Collect parameter values
+      const parameters: Record<string, any> = {};
+      script.parameters?.forEach(param => {
+        const input = document.getElementById(`param-${param.name}`) as HTMLInputElement;
+        if (param.type === 'number') {
+          parameters[param.name] = input.value ? Number(input.value) : undefined;
+        } else if (param.type === 'boolean') {
+          parameters[param.name] = input.checked;
+        } else {
+          parameters[param.name] = input.value;
+        }
+      });
+      // Close the modal
+      this.parametersModal?.classList.remove('active');
+      // Update the run button
+      const originalText = runButton.textContent;
+      runButton.innerHTML = '<span class="status-indicator running"></span>Running...';
+      runButton.disabled = true;
+      // Show logs container with initial message
+      this.showLogs([`Starting script execution for script ID: ${script.id} with parameters: ${JSON.stringify(parameters)}...`]);
+      try {
+        const result = await this.runScript(script.id, parameters);
+        // Update button to show success/error
+        if (result.success) {
+          runButton.innerHTML = '<span class="status-indicator success"></span>Success';
+        } else {
+          runButton.innerHTML = '<span class="status-indicator error"></span>Failed';
+        }
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          runButton.innerHTML = originalText || 'Run';
+          runButton.disabled = false;
+        }, 2000);
+      } catch (error) {
+        console.error('Error running script:', error);
+        this.showLogs([`Error running script: ${error instanceof Error ? error.message : String(error)}`], true);
+        runButton.innerHTML = '<span class="status-indicator error"></span>Error';
+        setTimeout(() => {
+          runButton.innerHTML = originalText || 'Run';
+          runButton.disabled = false;
+        }, 2000);
+      }
+    });
+  }
+  private async checkExecutionState() {
+    try {
+      const state = await chrome.runtime.sendMessage({
+        type: 'GET_EXECUTION_STATE'
+      });
+      if (state) {
+        this.isExecuting = state.isExecuting;
+        if (state.logs && state.logs.length > 0) {
+          this.showLogs(state.logs, !state.isExecuting);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking execution state:', error);
+    }
+  }
+  private async downloadTraceFile() {
+    this.downloadTraceBtn.disabled = true;
+    this.downloadTraceBtn.textContent = 'Downloading...';
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'GET_TRACE_DATA' });
+      if (response && response.success && response.data) {
+        const traceDataArray = response.data as number[];
+        const traceDataUint8Array = new Uint8Array(traceDataArray);
+        const blob = new Blob([traceDataUint8Array], { type: 'application/zip' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'trace.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.downloadTraceBtn.textContent = 'Downloaded!';
+        setTimeout(() => {
+          this.downloadTraceBtn.textContent = 'Download Trace';
+          this.downloadTraceBtn.disabled = false;
+        }, 2000);
+      } else {
+        console.error('Failed to download trace data:', response?.error);
+        this.downloadTraceBtn.textContent = 'Error!';
+        this.downloadTraceBtn.classList.add('error');
+        setTimeout(() => {
+          this.downloadTraceBtn.textContent = 'Download Trace';
+          this.downloadTraceBtn.classList.remove('error');
+          this.downloadTraceBtn.disabled = false;
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error downloading trace file:', error);
+      this.downloadTraceBtn.textContent = 'Error!';
+      this.downloadTraceBtn.classList.add('error');
+      setTimeout(() => {
+        this.downloadTraceBtn.textContent = 'Download Trace';
+        this.downloadTraceBtn.classList.remove('error');
+        this.downloadTraceBtn.disabled = false;
+      }, 2000);
+    }
+  }
+}
+// Initialize the UI when the document is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  new PopupUI();
+});
+</file>
+
+<file path="src/background.ts">
+/**
+ * Copyright (c) Rui Figueira.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import type { ScriptExecutionResult } from './core/types';
+import { getAvailableScripts, syncRemoteScripts, addScript, deleteScript } from './core/registry';
+import { crx } from 'playwright-crx';
+import { recordingService } from './services/recording';
+// Store execution logs persistently
+let currentExecutionLogs: string[] = [];
+let isExecuting = false;
+// Sync scripts when extension is loaded
+chrome.runtime.onStartup.addListener(() => {
+  syncRemoteScripts();
+});
+// Also sync when extension is installed or updated
+chrome.runtime.onInstalled.addListener(() => {
+  syncRemoteScripts();
+});
+interface ExecuteScriptMessage {
+  type: 'EXECUTE_SCRIPT';
+  scriptId: string;
+  parameters?: Record<string, any>;
+}
+interface StartRecordingMessage {
+  type: 'START_RECORDING';
+  useCurrentTab: boolean;
+}
+interface StopRecordingMessage {
+  type: 'STOP_RECORDING';
+}
+interface SaveRecordedScriptMessage {
+  type: 'SAVE_RECORDED_SCRIPT';
+  scriptName: string;
+  scriptDescription: string;
+}
+interface GetRecordingStateMessage {
+  type: 'GET_RECORDING_STATE';
+}
+interface GetScriptCodeMessage {
+  type: 'GET_SCRIPT_CODE';
+  scriptName: string;
+  scriptDescription: string;
+}
+interface DiscardRecordingMessage {
+  type: 'DISCARD_RECORDING';
+}
+interface DeleteScriptMessage {
+  type: 'DELETE_SCRIPT';
+  scriptId: string;
+}
+interface GetExecutionStateMessage {
+  type: 'GET_EXECUTION_STATE';
+}
+interface GetTraceDataMessage {
+  type: 'GET_TRACE_DATA';
+}
+type Message = 
+  | ExecuteScriptMessage 
+  | StartRecordingMessage 
+  | StopRecordingMessage
+  | SaveRecordedScriptMessage
+  | GetRecordingStateMessage
+  | GetScriptCodeMessage
+  | DiscardRecordingMessage
+  | DeleteScriptMessage
+  | GetTraceDataMessage
+  | GetExecutionStateMessage;
+// Handle messages from popup
+chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
+  if (message.type === 'EXECUTE_SCRIPT') {
+    executeScript(message.scriptId, message.parameters).then(sendResponse);
+    return true;
+  } else if (message.type === 'START_RECORDING') {
+    recordingService.startRecording(message.useCurrentTab).then(sendResponse);
+    return true;
+  } else if (message.type === 'STOP_RECORDING') {
+    recordingService.stopRecording().then(actions => {
+      sendResponse(actions);
+    });
+    return true;
+  } else if (message.type === 'SAVE_RECORDED_SCRIPT') {
+    const script = recordingService.generateScript(
+      message.scriptName, 
+      message.scriptDescription
+    );
+    addScript(script).then(() => {
+      sendResponse(true);
+    });
+    return true;
+  } else if (message.type === 'GET_RECORDING_STATE') {
+    // Return the current recording state
+    sendResponse(recordingService.getRecordingState());
+    return true;
+  } else if (message.type === 'GET_SCRIPT_CODE') {
+    // Return the script code as a string for copying to clipboard
+    const scriptCode = recordingService.generateCompleteScriptString(
+      message.scriptName,
+      message.scriptDescription
+    );
+    sendResponse(scriptCode);
+    return true;
+  } else if (message.type === 'DISCARD_RECORDING') {
+    // Discard the recording
+    recordingService.discardRecording().then(() => {
+      sendResponse(true);
+    });
+    return true;
+  } else if (message.type === 'DELETE_SCRIPT') {
+    // Delete the script
+    deleteScript(message.scriptId).then(success => {
+      sendResponse(success);
+    });
+    return true;
+  } else if (message.type === 'GET_EXECUTION_STATE') {
+    // Return current execution state and logs
+    sendResponse({
+      isExecuting,
+      logs: currentExecutionLogs
+    });
+    return true;
+  } else if (message.type === 'GET_TRACE_DATA') {
+    recordingService.getTraceData().then(traceData => {
+      if (traceData) {
+        // Convert Uint8Array to a plain array of numbers for serialization
+        sendResponse({ success: true, data: Array.from(traceData) });
+      } else {
+        sendResponse({ success: false, error: 'No trace data available.' });
+      }
+    }).catch(error => {
+      console.error('Error getting trace data:', error);
+      sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+    });
+    return true;
+  }
+});
+async function executeScript(scriptId: string, parameters?: Record<string, any>): Promise<ScriptExecutionResult> {
+  // Reset logs at the start of execution
+  currentExecutionLogs = [];
+  isExecuting = true;
+  const logs: string[] = [];
+  let crxApp = null;
+  try {
+    // Get all scripts to ensure we have the latest
+    const allScripts = await getAvailableScripts();
+    // Find the script by ID
+    const script = allScripts.find(s => s.id === scriptId);
+    if (!script) {
+      return {
+        success: false,
+        error: `Script not found: ${scriptId}`,
+        logs: [`Error: Script with ID "${scriptId}" not found`]
+      };
+    }
+    logs.push(`Executing script: ${script.name}`);
+    updateLogs(logs);
+    // If the script has parameters, log them
+    if (parameters && Object.keys(parameters).length > 0) {
+      logs.push(`Using parameters: ${JSON.stringify(parameters)}`);
+      updateLogs(logs);
+    }
+    // Try to start CRX with retry logic
+    const maxRetries = 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          logs.push(`Retry attempt ${attempt}/${maxRetries}...`);
+          updateLogs(logs);
+          // Add a delay between retries
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        crxApp = await crx.start();
+        if (attempt > 0) {
+          logs.push('Successfully started CRX instance');
+          updateLogs(logs);
+        }
+        break;
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('crxApplication is already started')) {
+          if (attempt === maxRetries) {
+            throw new Error('Failed to start CRX after multiple attempts');
+          }
+          logs.push('Detected lingering CRX instance, waiting before retry...');
+          updateLogs(logs);
+          continue;
+        }
+        throw error;
+      }
+    }
+    // Verify crxApp was initialized
+    if (!crxApp) {
+      throw new Error('Failed to initialize CRX application');
+    }
+    let page;
+    if (script.useCurrentTab) {
+      // Get the current active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) {
+        throw new Error('No active tab found');
+      }
+      // Attach to the current tab
+      page = await crxApp.attach(tab.id);
+      logs.push('Attached to current tab');
+      updateLogs(logs);
+    } else {
+      // Create a new tab
+      page = await crxApp.newPage();
+      logs.push('Created new tab');
+      updateLogs(logs);
+    }
+    const ctx = {
+      page,
+      log: (msg: string) => {
+        logs.push(msg);
+        updateLogs(logs);
+      },
+      parameters // Pass parameters to the script context
+    };
+    try {
+      // Execute the script with our context
+      await script.run(ctx);
+      logs.push(`Script ${script.name} completed successfully`);
+      updateLogs(logs);
+      if (script.useCurrentTab && crxApp) {
+        await crxApp.detach(page);
+        logs.push('Detached from tab');
+        updateLogs(logs);
+      }
+      return {
+        success: true,
+        logs
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logs.push(`Error: ${errorMessage}`);
+      updateLogs(logs);
+      if (script.useCurrentTab && crxApp) {
+        try {
+          await crxApp.detach(page);
+          logs.push('Detached from tab');
+          updateLogs(logs);
+        } catch (detachError) {
+          // Ignore detach errors
+        }
+      }
+      return {
+        success: false,
+        error: errorMessage,
+        logs
+      };
+    } finally {
+      if (crxApp) {
+        try {
+          await crxApp.close();
+          // Add a small delay after closing to ensure it's fully cleaned up
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error('Error closing CRX:', error);
+        }
+      }
+      isExecuting = false;
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logs.push(`Fatal error: ${errorMessage}`);
+    updateLogs(logs);
+    if (crxApp) {
+      try {
+        await crxApp.close();
+        // Add a small delay after closing to ensure it's fully cleaned up
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (closeError) {
+        console.error('Error closing CRX during error handling:', closeError);
+      }
+    }
+    isExecuting = false;
+    return {
+      success: false,
+      error: errorMessage,
+      logs
+    };
+  }
+}
+// Helper function to update logs and notify popup
+function updateLogs(logs: string[]) {
+  currentExecutionLogs = [...logs];
+  chrome.runtime.sendMessage({
+    type: 'SCRIPT_LOG_UPDATE',
+    logs: currentExecutionLogs,
+    isExecuting
+  });
+}
+</file>
+
+</files>
