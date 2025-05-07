@@ -13,6 +13,7 @@ class RecordingService {
   private recordingInterval: NodeJS.Timeout | null = null;
   private lastUserInteractionTime: number = 0;
   private navigationThreshold: number = 2000; // 2 second threshold
+  private traceData: Uint8Array | null = null;
 
   // Helper function to properly escape strings for script generation
   private escapeString(str: string): string {
@@ -52,6 +53,7 @@ class RecordingService {
 
     try {
       this.recordedActions = [];
+      this.traceData = null; // Clear previous trace data
       
       // Try to start CRX, handle already started error
       try {
@@ -108,6 +110,15 @@ class RecordingService {
         throw new Error('Failed to create or attach to page');
       }
 
+      // Start Playwright tracing
+      try {
+        await this.page.context().tracing.start({ screenshots: true, snapshots: true, sources: true });
+        console.log('Playwright tracing started.');
+      } catch (traceError) {
+        console.error('Failed to start Playwright tracing:', traceError);
+        // Log and continue, or throw if critical
+      }
+
       // Start recording
       await this.setupRecording();
       this.isRecording = true;
@@ -131,12 +142,25 @@ class RecordingService {
 
   async stopRecording(): Promise<RecordedAction[]> {
     if (!this.isRecording && this.recordedActions.length === 0) {
+      this.traceData = null; // Ensure trace data is null if nothing was recorded
       return [];
     }
 
     try {
-      this.isRecording = false;
+      this.isRecording = false; // Set to false before async operations that might use it
       this.lastUserInteractionTime = 0;
+      
+      // Stop Playwright tracing and save the trace file data
+      if (this.page) {
+        try {
+          await this.page.context().tracing.stop({ path: '/trace.zip' });
+          this.traceData = crx.fs.readFileSync('/trace.zip');
+          console.log('Playwright trace captured and read.');
+        } catch (traceError) {
+          console.error('Failed to stop Playwright tracing or read trace file:', traceError);
+          this.traceData = null; // Ensure traceData is null if error
+        }
+      }
       
       // Clear the interval
       if (this.recordingInterval) {
@@ -159,6 +183,7 @@ class RecordingService {
       // clear the recorded actions
       if (actions.length === 0) {
         this.recordedActions = [];
+        this.traceData = null; // Also clear trace data if no actions
       }
       
       return actions;
@@ -179,6 +204,7 @@ class RecordingService {
     this.isRecording = false;
     this.recordedActions = [];
     this.lastUserInteractionTime = 0;
+    this.traceData = null; // Clear trace data on discard
     
     // Clear the interval
     if (this.recordingInterval) {
@@ -211,6 +237,19 @@ class RecordingService {
       if (this.recordingInterval) {
         clearInterval(this.recordingInterval);
         this.recordingInterval = null;
+      }
+      
+      // If tracing was active and stopRecording wasn't properly called,
+      // try to stop it to prevent issues, though data won't be saved here.
+      if (this.page && this.isRecording) { // Check isRecording as a proxy for active tracing
+        try {
+          if (this.page.context().tracing) { // Ensure tracing object exists
+            await this.page.context().tracing.stop(); // Stop without path, won't save
+            console.log('Playwright tracing stopped during cleanup.');
+          }
+        } catch (tracingError) {
+          console.warn('Could not stop tracing during cleanup:', tracingError);
+        }
       }
       
       if (this.page) {
@@ -1066,6 +1105,10 @@ const script: ScriptDefinition = {
       tabId: this.tabId || undefined,
       tabUrl: this.recordingTabUrl || undefined
     };
+  }
+
+  async getTraceData(): Promise<Uint8Array | null> {
+    return this.traceData;
   }
 
   // Helper to determine if a navigation is to a new page (not just a hash change)

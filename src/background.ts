@@ -77,6 +77,10 @@ interface GetExecutionStateMessage {
   type: 'GET_EXECUTION_STATE';
 }
 
+interface GetTraceDataMessage {
+  type: 'GET_TRACE_DATA';
+}
+
 type Message = 
   | ExecuteScriptMessage 
   | StartRecordingMessage 
@@ -86,6 +90,7 @@ type Message =
   | GetScriptCodeMessage
   | DiscardRecordingMessage
   | DeleteScriptMessage
+  | GetTraceDataMessage
   | GetExecutionStateMessage;
 
 // Handle messages from popup
@@ -139,6 +144,19 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
     sendResponse({
       isExecuting,
       logs: currentExecutionLogs
+    });
+    return true;
+  } else if (message.type === 'GET_TRACE_DATA') {
+    recordingService.getTraceData().then(traceData => {
+      if (traceData) {
+        // Convert Uint8Array to a plain array of numbers for serialization
+        sendResponse({ success: true, data: Array.from(traceData) });
+      } else {
+        sendResponse({ success: false, error: 'No trace data available.' });
+      }
+    }).catch(error => {
+      console.error('Error getting trace data:', error);
+      sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
     });
     return true;
   }

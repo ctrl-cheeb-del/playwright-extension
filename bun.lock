@@ -6,7 +6,7 @@
       "dependencies": {
         "@types/node": "^22.13.9",
         "playwright-crx": "0.12.0",
-        "scraggy": "^0.0.5",
+        "scraggy": "^0.0.11",
       },
       "devDependencies": {
         "@types/chrome": "^0.0.281",
@@ -97,7 +97,7 @@
 
     "rollup-plugin-sourcemaps": ["rollup-plugin-sourcemaps@0.6.3", "", { "dependencies": { "@rollup/pluginutils": "^3.0.9", "source-map-resolve": "^0.6.0" }, "peerDependencies": { "@types/node": ">=10.0.0", "rollup": ">=0.31.2" } }, "sha512-paFu+nT1xvuO1tPFYXGe+XnQvg4Hjqv/eIhG8i5EspfYYPBKL57X7iVbfv55aNVASg3dzWvES9dmWsL2KhfByw=="],
 
-    "scraggy": ["scraggy@0.0.5", "", { "dependencies": { "acorn": "^8.11.3" } }, "sha512-z7YTuiCxDN6b5lHzqawt4uAVM6tF5cyWYOxOvybNI9D9mg1WLWFZvun2y2lK3yoLJIEqPOPDdMMUdSMubqLEbQ=="],
+    "scraggy": ["scraggy@0.0.11", "", { "dependencies": { "acorn": "^8.11.3" }, "bin": { "scraggy": "dist/cli.js" } }, "sha512-iYqY+/Xp6q51q0iwv7/CoOeN3KOXIhkKMIXiC4RcwQaTHpF5Ttcj+X+xxozzMSrs5gv3D4weGxM4wqrfUwlLmQ=="],
 
     "source-map-js": ["source-map-js@1.2.1", "", {}, ""],
 

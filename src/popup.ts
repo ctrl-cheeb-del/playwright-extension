@@ -23,6 +23,7 @@ class PopupUI {
   private scriptDescription: HTMLInputElement;
   private recordingModalTitle: HTMLHeadingElement;
   private parametersModal: HTMLDivElement | null = null;
+  private downloadTraceBtn: HTMLButtonElement;
   
   private scripts: ScriptDefinition[] = [];
   private isSyncing = false;
@@ -51,6 +52,7 @@ class PopupUI {
     this.scriptName = document.getElementById('scriptName') as HTMLInputElement;
     this.scriptDescription = document.getElementById('scriptDescription') as HTMLInputElement;
     this.recordingModalTitle = document.getElementById('recordingModalTitle') as HTMLHeadingElement;
+    this.downloadTraceBtn = document.getElementById('downloadTraceBtn') as HTMLButtonElement;
 
     this.initializeEventListeners();
     
@@ -233,6 +235,11 @@ class PopupUI {
       this.saveRecordedScript();
     });
 
+    // Download trace button
+    this.downloadTraceBtn.addEventListener('click', () => {
+      this.downloadTraceFile();
+    });
+
     // Listen for recording status updates
     chrome.runtime.onMessage.addListener((message) => {
       if (message.type === 'RECORDING_STATUS_UPDATE') {
@@ -325,6 +332,7 @@ class PopupUI {
     this.recordingStatus.style.display = 'none';
     this.saveRecordingForm.style.display = 'none';
     this.recordingModalTitle.textContent = 'Start Recording';
+    this.downloadTraceBtn.style.display = 'none';
     
     // Reset recording tab info
     const recordingTabInfo = document.getElementById('recordingTabInfo');
@@ -423,18 +431,21 @@ class PopupUI {
       this.recordingStatus.style.display = 'block';
       this.saveRecordingForm.style.display = 'none';
       this.recordingModalTitle.textContent = 'Recording in Progress';
+      this.downloadTraceBtn.style.display = 'none';
     } else if (this.recordedActions.length > 0) {
       // Show copy form
       this.recordingOptions.style.display = 'none';
       this.recordingStatus.style.display = 'none';
       this.saveRecordingForm.style.display = 'block';
       this.recordingModalTitle.textContent = 'Recording Complete';
+      this.downloadTraceBtn.style.display = 'inline-block';
     } else {
       // Show options
       this.recordingOptions.style.display = 'block';
       this.recordingStatus.style.display = 'none';
       this.saveRecordingForm.style.display = 'none';
       this.recordingModalTitle.textContent = 'Start Recording';
+      this.downloadTraceBtn.style.display = 'none';
     }
     
     // Update action counts
@@ -863,6 +874,53 @@ class PopupUI {
       }
     } catch (error) {
       console.error('Error checking execution state:', error);
+    }
+  }
+
+  private async downloadTraceFile() {
+    this.downloadTraceBtn.disabled = true;
+    this.downloadTraceBtn.textContent = 'Downloading...';
+
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'GET_TRACE_DATA' });
+
+      if (response && response.success && response.data) {
+        const traceDataArray = response.data as number[];
+        const traceDataUint8Array = new Uint8Array(traceDataArray);
+        const blob = new Blob([traceDataUint8Array], { type: 'application/zip' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'trace.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.downloadTraceBtn.textContent = 'Downloaded!';
+        setTimeout(() => {
+          this.downloadTraceBtn.textContent = 'Download Trace';
+          this.downloadTraceBtn.disabled = false;
+        }, 2000);
+      } else {
+        console.error('Failed to download trace data:', response?.error);
+        this.downloadTraceBtn.textContent = 'Error!';
+        this.downloadTraceBtn.classList.add('error');
+        setTimeout(() => {
+          this.downloadTraceBtn.textContent = 'Download Trace';
+          this.downloadTraceBtn.classList.remove('error');
+          this.downloadTraceBtn.disabled = false;
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error downloading trace file:', error);
+      this.downloadTraceBtn.textContent = 'Error!';
+      this.downloadTraceBtn.classList.add('error');
+      setTimeout(() => {
+        this.downloadTraceBtn.textContent = 'Download Trace';
+        this.downloadTraceBtn.classList.remove('error');
+        this.downloadTraceBtn.disabled = false;
+      }, 2000);
     }
   }
 }
