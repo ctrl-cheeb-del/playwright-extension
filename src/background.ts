@@ -18,6 +18,7 @@ import type { ScriptExecutionResult } from './core/types';
 import { getAvailableScripts, syncRemoteScripts, addScript, deleteScript } from './core/registry';
 import { crx } from 'playwright-crx';
 import { recordingService } from './services/recording';
+import { LLM_SYSTEM_PROMPT_FOR_AI_ACT, LLM_SYSTEM_PROMPT_FOR_DIRECT_AI } from './core/prompts';
 
 // Store execution logs persistently
 let currentExecutionLogs: string[] = [];
@@ -81,6 +82,32 @@ interface GetTraceDataMessage {
   type: 'GET_TRACE_DATA';
 }
 
+// New Message Types for AI Act
+interface PrepareAiActDataMessage {
+  type: 'PREPARE_AI_ACT_DATA';
+  command: string;
+}
+
+interface ExecutePlaywrightActionMessage {
+  type: 'EXECUTE_PLAYWRIGHT_ACTION';
+  actionJson: any; // This will be the JSON from the LLM { action: string, selector?: string, value?: string, url?: string, error?: string }
+  originalCommand: string;
+}
+
+// This message is from background to popup
+interface AiActDataReadyMessage {
+  type: 'AI_ACT_DATA_READY';
+  llmPrompt: string;
+  originalCommand: string;
+}
+
+// New Message Type for AI Direct Mode
+interface ExecuteAiDirectCommandMessage {
+  type: 'EXECUTE_AI_DIRECT_COMMAND';
+  prompt: string;
+  token: string; // This token will be used for direct LLM API calls
+}
+
 type Message = 
   | ExecuteScriptMessage 
   | StartRecordingMessage 
@@ -91,7 +118,11 @@ type Message =
   | DiscardRecordingMessage
   | DeleteScriptMessage
   | GetTraceDataMessage
-  | GetExecutionStateMessage;
+  | GetExecutionStateMessage
+  // Add new types to the union
+  | PrepareAiActDataMessage
+  | ExecutePlaywrightActionMessage
+  | ExecuteAiDirectCommandMessage;
 
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
@@ -158,6 +189,17 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
       console.error('Error getting trace data:', error);
       sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
     });
+    return true;
+  }
+  // Add handlers for new AI Act messages
+  else if (message.type === 'PREPARE_AI_ACT_DATA') {
+    handlePrepareAiActData(message.command).then(sendResponse);
+    return true;
+  } else if (message.type === 'EXECUTE_PLAYWRIGHT_ACTION') {
+    handleExecutePlaywrightAction(message.actionJson, message.originalCommand).then(sendResponse);
+    return true;
+  } else if (message.type === 'EXECUTE_AI_DIRECT_COMMAND') {
+    handleExecuteAiDirectCommand(message.prompt, message.token, sendResponse);
     return true;
   }
 });
@@ -336,4 +378,311 @@ function updateLogs(logs: string[]) {
     logs: currentExecutionLogs,
     isExecuting
   });
+}
+
+// --- AI Act Functionality ---
+
+// const LLM_SYSTEM_PROMPT_FOR_AI_ACT = `...`; // Removed
+// const LLM_SYSTEM_PROMPT_FOR_DIRECT_AI = `...`; // Removed
+
+async function attachToActiveTab(crxAppInstance: any, logs: string[]): Promise<any> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    throw new Error('No active tab found to attach.');
+  }
+  const page = await crxAppInstance.attach(tab.id);
+  logs.push(`Attached to active tab (ID: ${tab.id}, URL: ${tab.url})`);
+  updateLogs(logs);
+  return page;
+}
+
+async function handlePrepareAiActData(userCommand: string) {
+  isExecuting = true;
+  currentExecutionLogs = [`Preparing AI Act data for command: "${userCommand}"...`];
+  updateLogs(currentExecutionLogs);
+
+  let crxApp = null;
+  try {
+    crxApp = await crx.start();
+    const page = await attachToActiveTab(crxApp, currentExecutionLogs);
+    
+    currentExecutionLogs.push('Capturing accessibility tree...');
+    updateLogs(currentExecutionLogs);
+    const accessibilitySnapshot = await page.accessibility.snapshot();
+    // Consider potential size of snapshot. May need to stringify with truncation or a replacer if it's too big.
+    const stringifiedTree = JSON.stringify(accessibilitySnapshot, null, 2); // Pretty print for readability if shown to user
+    
+    currentExecutionLogs.push('Accessibility tree captured.');
+    updateLogs(currentExecutionLogs);
+
+    const userPromptForLLM = `
+Accessibility Tree:
+${stringifiedTree}
+
+User Instruction:
+"${userCommand}"
+
+Based on the system prompt, the accessibility tree, and the user instruction, what is the Playwright action JSON?`;
+
+    const fullPromptForLLM = `${LLM_SYSTEM_PROMPT_FOR_AI_ACT}
+
+${userPromptForLLM}`;
+
+    // Send data back to popup
+    chrome.runtime.sendMessage({
+      type: 'AI_ACT_DATA_READY',
+      llmPrompt: fullPromptForLLM,
+      originalCommand: userCommand
+    } as AiActDataReadyMessage);
+
+    // No direct response needed for sendResponse here as communication is one-way to popup for this part
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    currentExecutionLogs.push(`Error preparing AI data: ${errorMessage}`);
+    console.error('Error in handlePrepareAiActData:', error);
+  } finally {
+    if (crxApp) {
+      try {
+        await crxApp.close();
+        currentExecutionLogs.push('CRX application closed after data preparation.');
+      } catch (closeError) {
+        currentExecutionLogs.push(`Error closing CRX app: ${closeError instanceof Error ? closeError.message : String(closeError)}`);
+        console.error('Error closing CRX app in handlePrepareAiActData:', closeError);
+      }
+    }
+    isExecuting = false; // Reset execution state
+    updateLogs(currentExecutionLogs); // Send final logs
+  }
+}
+
+async function handleExecutePlaywrightAction(actionJson: any, originalCommand: string): Promise<ScriptExecutionResult> {
+  isExecuting = true;
+  currentExecutionLogs = [`Executing AI action for command: "${originalCommand}"...`, `Action JSON: ${JSON.stringify(actionJson)}`];
+  updateLogs(currentExecutionLogs);
+
+  let crxApp = null;
+  let page = null;
+
+  try {
+    const { action, selector, value, url, error: llmError } = actionJson;
+
+    if (llmError) {
+      currentExecutionLogs.push(`LLM Error: ${llmError}`);
+      updateLogs(currentExecutionLogs);
+      return { success: false, error: llmError, logs: currentExecutionLogs };
+    }
+
+    crxApp = await crx.start();
+    page = await attachToActiveTab(crxApp, currentExecutionLogs);
+
+    switch (action) {
+      case 'click':
+        if (!selector) {
+          throw new Error('LLM action "click" missing "selector".');
+        }
+        currentExecutionLogs.push(`Attempting to click: ${selector}`);
+        updateLogs(currentExecutionLogs);
+        await page.click(selector, { timeout: 10000 }); // Added timeout
+        currentExecutionLogs.push(`Clicked element with selector: ${selector}`);
+        break;
+      case 'fill':
+        if (!selector || value === undefined) {
+          throw new Error('LLM action "fill" missing "selector" or "value".');
+        }
+        currentExecutionLogs.push(`Attempting to fill: ${selector} with "${value}"`);
+        updateLogs(currentExecutionLogs);
+        await page.fill(selector, value, { timeout: 10000 }); // Added timeout
+        currentExecutionLogs.push(`Filled element with selector: ${selector}`);
+        break;
+      case 'navigate':
+        if (!url) {
+          throw new Error('LLM action "navigate" missing "url".');
+        }
+        currentExecutionLogs.push(`Attempting to navigate to: ${url}`);
+        updateLogs(currentExecutionLogs);
+        await page.goto(url, { timeout: 30000 }); // Added timeout
+        currentExecutionLogs.push(`Navigated to: ${url}`);
+        break;
+      default:
+        throw new Error(`Unknown LLM action type: "${action}". Supported actions: click, fill, navigate.`);
+    }
+    
+    currentExecutionLogs.push('AI action executed successfully.');
+    updateLogs(currentExecutionLogs);
+    return { success: true, logs: currentExecutionLogs };
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    currentExecutionLogs.push(`Error executing AI action: ${errorMessage}`);
+    console.error('Error in handleExecutePlaywrightAction:', error);
+    return { success: false, error: errorMessage, logs: currentExecutionLogs };
+  } finally {
+    if (page && crxApp) {
+      try {
+        await crxApp.detach(page);
+        currentExecutionLogs.push('Detached from tab after AI action.');
+      } catch (detachError) {
+        currentExecutionLogs.push(`Error detaching from tab: ${detachError instanceof Error ? detachError.message : String(detachError)}`);
+      }
+    }
+    if (crxApp) {
+      try {
+        await crxApp.close();
+        currentExecutionLogs.push('CRX application closed after AI action execution.');
+      } catch (closeError) {
+        currentExecutionLogs.push(`Error closing CRX app: ${closeError instanceof Error ? closeError.message : String(closeError)}`);
+        console.error('Error closing CRX app in handleExecutePlaywrightAction:', closeError);
+      }
+    }
+    isExecuting = false; // Reset execution state
+    updateLogs(currentExecutionLogs); // Send final logs
+  }
+}
+
+// Placeholder for the new AI Direct Command handler
+async function handleExecuteAiDirectCommand(prompt: string, token: string, sendResponse: (response?: any) => void) {
+  isExecuting = true;
+  currentExecutionLogs = [`Executing AI Direct Command: "${prompt}"...`];
+  updateLogs(currentExecutionLogs);
+
+  let crxApp = null;
+  let page = null;
+  const openAiEndpoint = 'https://api.openai.com/v1/chat/completions'; // Configurable if needed
+
+  try {
+    crxApp = await crx.start();
+    page = await attachToActiveTab(crxApp, currentExecutionLogs);
+    
+    currentExecutionLogs.push('Capturing accessibility tree for AI Direct Command...');
+    updateLogs(currentExecutionLogs);
+    const accessibilitySnapshot = await page.accessibility.snapshot({interestingOnly: false}); // Get full tree
+    const stringifiedTree = JSON.stringify(accessibilitySnapshot); // No need for pretty print for API
+
+    currentExecutionLogs.push('Requesting action from LLM...');
+    updateLogs(currentExecutionLogs);
+
+    const llmApiPayload = {
+      model: "gpt-4.1-2025-04-14", 
+      messages: [
+        { role: "system", content: LLM_SYSTEM_PROMPT_FOR_DIRECT_AI },
+        { 
+          role: "user", 
+          content: `Accessibility Tree (JSON):
+${stringifiedTree}
+
+User Instruction:
+"${prompt}"`
+        }
+      ],
+      response_format: { type: "json_object" } // Request JSON output if model supports it
+    };
+
+    // Log the payload being sent to the LLM
+    currentExecutionLogs.push(`LLM API Payload: ${JSON.stringify(llmApiPayload, null, 2)}`); // Pretty print for console
+    updateLogs(currentExecutionLogs);
+    // For more detailed inspection, especially of the tree, you might log stringifiedTree separately
+    // console.log("Full Accessibility Tree for LLM:", stringifiedTree); // Potentially very large!
+
+    const llmApiResponse = await fetch(openAiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(llmApiPayload)
+    });
+
+    if (!llmApiResponse.ok) {
+      const errorBody = await llmApiResponse.text(); // Use text() first to see raw error
+      currentExecutionLogs.push(`LLM API Raw Error Response: ${errorBody}`); // Log raw error body
+      updateLogs(currentExecutionLogs);
+      throw new Error(`LLM API request failed: ${llmApiResponse.status} ${llmApiResponse.statusText} - ${errorBody}`);
+    }
+
+    const llmRawResponseText = await llmApiResponse.text(); // Get raw text first
+    currentExecutionLogs.push(`LLM API Raw Response Text: ${llmRawResponseText}`);
+    updateLogs(currentExecutionLogs);
+    
+    // Check for content and parse it
+    let actionJson;
+    try {
+      actionJson = JSON.parse(llmRawResponseText); // Try to parse the raw text directly if it's the JSON object
+      // For OpenAI, the actual JSON content is often in llmResult.choices[0].message.content
+      // Let's refine this part based on typical OpenAI structure
+      const llmResultJson = JSON.parse(llmRawResponseText); // First parse the whole response
+      if (llmResultJson.choices && llmResultJson.choices[0] && llmResultJson.choices[0].message && llmResultJson.choices[0].message.content) {
+        actionJson = JSON.parse(llmResultJson.choices[0].message.content); // Then parse the content string
+      } else if (llmResultJson.error) { // Handle cases where the top-level response IS the error object
+        actionJson = llmResultJson;
+      } else {
+        throw new Error('LLM response did not contain expected content path (e.g., choices[0].message.content) or a direct error object.');
+      }
+    } catch (e) {
+      throw new Error(`Failed to parse LLM JSON response: ${e instanceof Error ? e.message : String(e)}. Raw text was: ${llmRawResponseText}`);
+    }
+
+    currentExecutionLogs.push(`LLM Response (parsed action JSON): ${JSON.stringify(actionJson)}`);
+    updateLogs(currentExecutionLogs);
+
+    if (actionJson.error) {
+      throw new Error(`LLM returned an error: ${actionJson.error}`);
+    }
+
+    if (!actionJson.actions || !Array.isArray(actionJson.actions) || actionJson.actions.length === 0) {
+      throw new Error('LLM response missing "actions" array or actions array is empty.');
+    }
+
+    // Execute actions in sequence
+    for (const step of actionJson.actions) {
+      const { action, selector, value, url } = step;
+      currentExecutionLogs.push(`Executing action: ${action} with params: ${JSON.stringify(step)}`);
+      updateLogs(currentExecutionLogs);
+
+      switch (action) {
+        case 'click':
+          if (!selector) throw new Error('Action "click" missing "selector".');
+          await page.click(selector, { timeout: 15000 });
+          currentExecutionLogs.push(`Clicked: ${selector}`);
+          break;
+        case 'fill':
+          if (!selector || value === undefined) throw new Error('Action "fill" missing "selector" or "value".');
+          await page.fill(selector, value, { timeout: 15000 });
+          currentExecutionLogs.push(`Filled: ${selector} with "${value}"`);
+          break;
+        case 'navigate':
+          if (!url) throw new Error('Action "navigate" missing "url".');
+          await page.goto(url, { timeout: 30000, waitUntil: 'networkidle' });
+          currentExecutionLogs.push(`Navigated to: ${url}`);
+          break;
+        default:
+          throw new Error(`Unknown action type from LLM: "${action}".`);
+      }
+      updateLogs(currentExecutionLogs);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between actions
+    }
+
+    currentExecutionLogs.push('AI Direct Command executed successfully.');
+    sendResponse({ success: true, logs: currentExecutionLogs });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error in handleExecuteAiDirectCommand:', error);
+    currentExecutionLogs.push(`Error executing AI Direct Command: ${errorMessage}`);
+    sendResponse({ success: false, error: errorMessage, logs: currentExecutionLogs });
+  } finally {
+    if (page && crxApp) {
+      try {
+        await crxApp.detach(page);
+        currentExecutionLogs.push('Detached from tab.');
+      } catch (detachError) { /* ignore */ }
+    }
+    if (crxApp) {
+      try {
+        await crxApp.close();
+        currentExecutionLogs.push('CRX application closed.');
+      } catch (closeError) { /* ignore */ }
+    }
+    isExecuting = false;
+    updateLogs(currentExecutionLogs); // Send final logs if any changed in finally
+  }
 }

@@ -50,6 +50,7 @@ export interface StorageData {
   remoteScripts: RemoteScript[];  // For storing fetched remote scripts
   lastSyncTime?: number;  // When we last synced with the remote repository
   localRecordedScripts?: SerializableScript[];  // For storing locally recorded scripts
+  aiApiKey?: string; // For storing the user's AI API key
 }
 
 export interface ScriptLogUpdateMessage {

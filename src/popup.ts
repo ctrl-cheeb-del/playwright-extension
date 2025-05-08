@@ -1,5 +1,15 @@
 import type { RecordedAction, ScriptDefinition, ScriptExecutionResult } from './core/types';
 import { getAvailableScripts, syncRemoteScripts } from './core/registry';
+import { storageService } from './services/storage';
+
+// Define AiActDataReadyMessage interface here for popup.ts to understand it
+/*
+interface AiActDataReadyMessage {
+  type: 'AI_ACT_DATA_READY';
+  llmPrompt: string;
+  originalCommand: string;
+}
+*/
 
 class PopupUI {
   private scriptsList: HTMLDivElement;
@@ -24,6 +34,34 @@ class PopupUI {
   private recordingModalTitle: HTMLHeadingElement;
   private parametersModal: HTMLDivElement | null = null;
   private downloadTraceBtn: HTMLButtonElement;
+  
+  // New UI elements for AI Act -- REMOVING
+  /*
+  private aiCommandInput: HTMLInputElement;
+  private prepareAiDataBtn: HTMLButtonElement;
+  private aiLlmInteractionSection: HTMLDivElement;
+  private llmPromptDisplay: HTMLTextAreaElement;
+  private llmActionJsonInput: HTMLInputElement;
+  private executeLlmActionBtn: HTMLButtonElement;
+  */
+
+  // New UI elements for AI Direct Mode
+  private aiModeToggle: HTMLInputElement;
+  private scriptsContainer: HTMLDivElement;
+  private aiDirectModeSection: HTMLDivElement;
+  // private aiActExperimentalSection: HTMLDivElement; -- REMOVING
+  private aiDirectPromptInput: HTMLTextAreaElement;
+  private executeAiDirectBtn: HTMLButtonElement;
+
+  // Settings Elements
+  private settingsButton: HTMLButtonElement;
+  private settingsSection: HTMLDivElement;
+  private apiKeyInput: HTMLInputElement;
+  private saveApiKeyBtn: HTMLButtonElement;
+  private closeSettingsBtn: HTMLButtonElement;
+  private apiKeyStatus: HTMLParagraphElement;
+  private settingsHint: HTMLParagraphElement;
+  private goToSettingsBtn: HTMLButtonElement;
   
   private scripts: ScriptDefinition[] = [];
   private isSyncing = false;
@@ -54,6 +92,34 @@ class PopupUI {
     this.recordingModalTitle = document.getElementById('recordingModalTitle') as HTMLHeadingElement;
     this.downloadTraceBtn = document.getElementById('downloadTraceBtn') as HTMLButtonElement;
 
+    // Initialize new AI Act UI elements -- REMOVING
+    /*
+    this.aiCommandInput = document.getElementById('aiCommandInput') as HTMLInputElement;
+    this.prepareAiDataBtn = document.getElementById('prepareAiDataBtn') as HTMLButtonElement;
+    this.aiLlmInteractionSection = document.getElementById('aiLlmInteractionSection') as HTMLDivElement;
+    this.llmPromptDisplay = document.getElementById('llmPromptDisplay') as HTMLTextAreaElement;
+    this.llmActionJsonInput = document.getElementById('llmActionJsonInput') as HTMLInputElement;
+    this.executeLlmActionBtn = document.getElementById('executeLlmActionBtn') as HTMLButtonElement;
+    */
+
+    // Initialize new AI Direct Mode UI elements
+    this.aiModeToggle = document.getElementById('aiModeToggle') as HTMLInputElement;
+    this.scriptsContainer = document.getElementById('scriptsContainer') as HTMLDivElement;
+    this.aiDirectModeSection = document.getElementById('aiDirectModeSection') as HTMLDivElement;
+    // this.aiActExperimentalSection = document.getElementById('aiActExperimentalSection') as HTMLDivElement; -- REMOVING
+    this.aiDirectPromptInput = document.getElementById('aiDirectPromptInput') as HTMLTextAreaElement;
+    this.executeAiDirectBtn = document.getElementById('executeAiDirectBtn') as HTMLButtonElement;
+
+    // Initialize Settings UI elements
+    this.settingsButton = document.getElementById('settingsButton') as HTMLButtonElement;
+    this.settingsSection = document.getElementById('settingsSection') as HTMLDivElement;
+    this.apiKeyInput = document.getElementById('apiKeyInput') as HTMLInputElement;
+    this.saveApiKeyBtn = document.getElementById('saveApiKeyBtn') as HTMLButtonElement;
+    this.closeSettingsBtn = document.getElementById('closeSettingsBtn') as HTMLButtonElement;
+    this.apiKeyStatus = document.getElementById('apiKeyStatus') as HTMLParagraphElement;
+    this.settingsHint = document.querySelector('.settings-hint') as HTMLParagraphElement;
+    this.goToSettingsBtn = document.getElementById('goToSettingsBtn') as HTMLButtonElement;
+
     this.initializeEventListeners();
     
     // Check if recording is in progress when popup opens
@@ -64,6 +130,8 @@ class PopupUI {
 
     // Check for existing execution state when popup opens
     this.checkExecutionState();
+
+    this.loadInitialSettings();
   }
 
   private async loadScripts(forceSync = false) {
@@ -183,6 +251,13 @@ class PopupUI {
         this.isExecuting = message.isExecuting;
         this.showLogs(message.logs, !message.isExecuting);
       }
+      // Add listener for AI_ACT_DATA_READY -- REMOVING
+      /*
+      else if (message.type === 'AI_ACT_DATA_READY') {
+        const aiMessage = message as AiActDataReadyMessage; // Cast to the correct type
+        this.handleAiActDataReady(aiMessage.llmPrompt, aiMessage.originalCommand);
+      }
+      */
       return true;
     });
 
@@ -324,6 +399,63 @@ class PopupUI {
         }
       }
     });
+
+    // AI Act Button Listeners -- REMOVING
+    /*
+    if (this.prepareAiDataBtn) {
+      this.prepareAiDataBtn.addEventListener('click', () => {
+        this.prepareAiActData();
+      });
+    }
+
+    if (this.executeLlmActionBtn) {
+      this.executeLlmActionBtn.addEventListener('click', () => {
+        this.executeLlmAction();
+      });
+    }
+    */
+
+    // AI Mode Toggle Listener
+    if (this.aiModeToggle) {
+      this.aiModeToggle.addEventListener('change', () => {
+        this.toggleAiModeDisplay(this.aiModeToggle.checked);
+      });
+    }
+
+    // AI Direct Mode Button Listener
+    if (this.executeAiDirectBtn) {
+      this.executeAiDirectBtn.addEventListener('click', () => {
+        this.executeAiDirectCommand();
+      });
+    }
+
+    // Settings Button Listener
+    if (this.settingsButton) {
+      this.settingsButton.addEventListener('click', () => {
+        this.showSettingsSection();
+      });
+    }
+
+    // Go To Settings Button (in hint) Listener
+    if (this.goToSettingsBtn) {
+      this.goToSettingsBtn.addEventListener('click', () => {
+        this.showSettingsSection();
+      });
+    }
+
+    // Save API Key Button Listener
+    if (this.saveApiKeyBtn) {
+      this.saveApiKeyBtn.addEventListener('click', async () => {
+        await this.saveApiKey();
+      });
+    }
+
+    // Close Settings Button Listener
+    if (this.closeSettingsBtn) {
+      this.closeSettingsBtn.addEventListener('click', () => {
+        this.hideSettingsSection();
+      });
+    }
   }
 
   private openRecordingModal() {
@@ -921,6 +1053,233 @@ class PopupUI {
         this.downloadTraceBtn.classList.remove('error');
         this.downloadTraceBtn.disabled = false;
       }, 2000);
+    }
+  }
+
+  // --- AI Act Methods --- -- REMOVING ENTIRE BLOCK
+  /*
+  private prepareAiActData() {
+    const command = this.aiCommandInput.value.trim();
+    if (!command) {
+      this.showLogs(['Please enter a command for the AI.'], true);
+      // Optionally, briefly highlight the input field or show a small error message next to it.
+      this.aiCommandInput.focus();
+      return;
+    }
+
+    this.prepareAiDataBtn.disabled = true;
+    this.prepareAiDataBtn.textContent = 'Preparing...';
+    this.aiLlmInteractionSection.style.display = 'none'; // Hide section while preparing
+    this.showLogs([`Sending command to background for AI preparation: "${command}"`]);
+
+    chrome.runtime.sendMessage({
+      type: 'PREPARE_AI_ACT_DATA',
+      command
+    });
+  }
+
+  private handleAiActDataReady(llmPrompt: string, _originalCommand: string) {
+    this.llmPromptDisplay.value = llmPrompt;
+    // Store original command if needed for executeLlmAction, e.g., on a data attribute or a class member
+    // For simplicity, executeLlmAction can re-read from aiCommandInput or we can pass it along.
+    // Let's assume originalCommand is mainly for context in logs from background.
+
+    this.aiLlmInteractionSection.style.display = 'block';
+    this.llmActionJsonInput.value = ''; // Clear previous JSON
+    this.prepareAiDataBtn.disabled = false;
+    this.prepareAiDataBtn.textContent = 'Prepare for AI';
+    this.showLogs(['Data ready for LLM. Please copy the prompt, get the action JSON, and paste it below.'], true);
+    this.llmPromptDisplay.focus(); // Focus on prompt for easy copying
+  }
+
+  private executeLlmAction() {
+    const actionJsonString = this.llmActionJsonInput.value.trim();
+    const originalCommand = this.aiCommandInput.value.trim(); // Get command again for context
+
+    if (!actionJsonString) {
+      this.showLogs(['Please paste the LLM Action JSON.'], true);
+      this.llmActionJsonInput.focus();
+      return;
+    }
+
+    let actionJson;
+    try {
+      actionJson = JSON.parse(actionJsonString);
+    } catch (error) {
+      this.showLogs([`Invalid JSON: ${error instanceof Error ? error.message : String(error)}`], true);
+      this.llmActionJsonInput.focus();
+      return;
+    }
+
+    this.executeLlmActionBtn.disabled = true;
+    this.executeLlmActionBtn.textContent = 'Executing...';
+    this.showLogs([`Sending LLM action to background: ${actionJsonString}`]);
+
+    chrome.runtime.sendMessage({
+      type: 'EXECUTE_PLAYWRIGHT_ACTION',
+      actionJson,
+      originalCommand // Pass original command for logging context in background
+    }, (response) => {
+      // Callback for EXECUTE_PLAYWRIGHT_ACTION if background sends one (e.g. final status)
+      // The primary logging is handled by SCRIPT_LOG_UPDATE, but a direct response can be useful.
+      if (chrome.runtime.lastError) {
+        this.showLogs([`Error sending action to background: ${chrome.runtime.lastError.message}`], true);
+      } else if (response) {
+        // Assuming response is ScriptExecutionResult like object
+        // this.showLogs(response.logs, !response.success); // Already handled by SCRIPT_LOG_UPDATE
+      }
+      this.executeLlmActionBtn.disabled = false;
+      this.executeLlmActionBtn.textContent = 'Execute AI Action';
+    });
+  }
+  */
+  // --- End AI Act Methods -- REMOVING
+
+  // --- AI Direct Mode Methods ---
+  private async executeAiDirectCommand() {
+    const prompt = this.aiDirectPromptInput.value.trim();
+
+    if (!prompt) {
+      this.showLogs(['Please enter your AI prompt.'], true);
+      this.aiDirectPromptInput.focus();
+      return;
+    }
+
+    // Retrieve token from storage
+    let token: string | undefined;
+    try {
+      token = await storageService.getApiKey();
+    } catch (error) {
+      console.error("Error retrieving API key:", error);
+      this.showLogs(['Error retrieving API key from storage.'], true);
+      this.executeAiDirectBtn.disabled = false;
+      this.executeAiDirectBtn.textContent = 'Run AI Command';
+      return;
+    }
+
+    if (!token) {
+      this.showLogs(['API Key not set. Please set it in the Settings menu.'], true);
+      this.settingsHint.style.display = 'block'; // Ensure hint is shown
+      return;
+    }
+    
+    // If we reach here, token exists
+    this.settingsHint.style.display = 'none'; // Hide hint if we have the token
+    this.executeAiDirectBtn.disabled = true;
+    this.executeAiDirectBtn.textContent = 'Running AI...';
+    this.showLogs([`Sending to AI: \"${prompt}\" (using stored token)`]);
+
+    // Send to background script
+    chrome.runtime.sendMessage({
+      type: 'EXECUTE_AI_DIRECT_COMMAND',
+      prompt,
+      token // Send the retrieved token
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        this.showLogs([`Error sending AI Direct command: ${chrome.runtime.lastError.message}`], true);
+        console.error("AI Direct Send Error:", chrome.runtime.lastError);
+      } else if (response && !response.success) {
+        // Assuming background might send back an immediate failure response structure
+        this.showLogs(response.logs || [`AI Direct command failed: ${response.error || 'Unknown error'}`], true);
+      } else if (response && response.success) {
+        this.showLogs(response.logs || ['AI Direct command acknowledged.'], true);
+      }
+      // Logs will also be updated via SCRIPT_LOG_UPDATE from background during execution
+      this.executeAiDirectBtn.disabled = false;
+      this.executeAiDirectBtn.textContent = 'Run AI Command';
+    });
+  }
+  // --- End AI Direct Mode Methods ---
+
+  private toggleAiModeDisplay(isAiModeActive: boolean) {
+    // Ensure settings are hidden unless explicitly shown
+    this.settingsSection.style.display = 'none'; 
+
+    if (isAiModeActive) {
+      this.scriptsContainer.style.display = 'none';
+      // this.aiActExperimentalSection.style.display = 'none'; // Keep hidden when AI mode is ON -- REMOVING
+      this.aiDirectModeSection.style.display = 'block';
+      // Check if API key is set when activating AI mode
+      this.checkApiKeyForAiMode(); 
+    } else {
+      this.scriptsContainer.style.display = 'block';
+      // this.aiActExperimentalSection.style.display = 'none'; // Hide when AI mode is OFF -- REMOVING
+      this.aiDirectModeSection.style.display = 'none';
+      this.settingsHint.style.display = 'none'; // Hide hint when not in AI mode
+    }
+  }
+
+  private async checkApiKeyForAiMode() {
+    const apiKey = await storageService.getApiKey();
+    if (!apiKey) {
+      this.settingsHint.style.display = 'block'; // Show hint if key is missing
+    } else {
+      this.settingsHint.style.display = 'none'; // Hide hint if key exists
+    }
+  }
+
+  private showSettingsSection() {
+    // Hide other main content sections
+    this.scriptsContainer.style.display = 'none';
+    this.aiDirectModeSection.style.display = 'none';
+    // this.aiActExperimentalSection.style.display = 'none'; -- REMOVING
+    // Show settings
+    this.settingsSection.style.display = 'block';
+    // Load current key into input when showing
+    this.loadInitialSettings(); 
+  }
+
+  private hideSettingsSection() {
+    this.settingsSection.style.display = 'none';
+    // Restore visibility based on AI mode toggle state
+    this.toggleAiModeDisplay(this.aiModeToggle.checked);
+  }
+
+  private async saveApiKey() {
+    const apiKey = this.apiKeyInput.value.trim();
+    this.saveApiKeyBtn.disabled = true;
+    this.saveApiKeyBtn.textContent = 'Saving...';
+    this.apiKeyStatus.textContent = '';
+
+    try {
+      await storageService.saveApiKey(apiKey);
+      this.apiKeyStatus.textContent = 'API Key saved successfully!';
+      this.apiKeyStatus.className = 'status-message'; // Success style
+      // Hide hint in AI Direct mode if key is now set
+      if (apiKey) {
+        this.settingsHint.style.display = 'none'; 
+      } else {
+        this.settingsHint.style.display = 'block'; 
+      }
+    } catch (error) {
+      console.error("Error saving API key:", error);
+      this.apiKeyStatus.textContent = 'Failed to save API key.';
+      this.apiKeyStatus.className = 'status-message error'; // Error style
+    } finally {
+      this.saveApiKeyBtn.disabled = false;
+      this.saveApiKeyBtn.textContent = 'Save API Key';
+      // Optionally hide the status message after a delay
+      setTimeout(() => { this.apiKeyStatus.textContent = ''; }, 3000);
+    }
+  }
+
+  private async loadInitialSettings() {
+    try {
+      const apiKey = await storageService.getApiKey();
+      if (apiKey) {
+        this.apiKeyInput.value = apiKey;
+        this.apiKeyStatus.textContent = 'API Key is set.';
+        this.apiKeyStatus.className = 'status-message'; // Reset class
+        this.settingsHint.style.display = 'none'; // Hide hint if key is set
+      } else {
+        this.apiKeyStatus.textContent = 'API Key not set.';
+        this.apiKeyStatus.className = 'status-message error'; // Error class
+        this.settingsHint.style.display = 'block'; // Show hint if key is not set
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+      this.apiKeyStatus.textContent = 'Error loading API key.';
+      this.apiKeyStatus.className = 'status-message error';
     }
   }
 }

@@ -465,6 +465,16 @@ input[type="text"]:focus, textarea:focus {
   color: var(--error);
 }
 
+/* Settings button */
+#settingsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
 /* Modal */
 .modal {
   display: none;
@@ -794,4 +804,174 @@ textarea {
 .required {
   color: var(--error);
   margin-left: 2px;
+} 
+
+/* AI Mode Toggle Switch in Header */
+.ai-mode-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px; /* Add some spacing from other header buttons */
+}
+
+.ai-mode-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 34px; /* smaller switch */
+  height: 20px; /* smaller switch */
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-secondary); /* Off state */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 12px; /* smaller knob */
+  width: 12px;  /* smaller knob */
+  left: 3px;    /* adjusted for smaller size */
+  bottom: 3px;  /* adjusted for smaller size */
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--accent);
+}
+
+input:checked + .slider:before {
+  transform: translateX(14px); /* adjusted for smaller size */
+}
+
+.slider.round {
+  border-radius: 20px; /* adjusted for smaller height */
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* AI Direct Mode Section */
+.ai-direct-mode-section {
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1); /* Optional separator */
+}
+
+.ai-direct-mode-section h3 {
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ai-direct-mode-section .form-group {
+  margin-bottom: 16px;
+}
+
+.ai-direct-mode-section textarea#aiDirectPromptInput {
+  min-height: 60px;
+}
+
+.ai-direct-mode-section button#executeAiDirectBtn {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+}
+
+/* General section styling - if not already present for .section */
+.section {
+  padding: 12px; /* Ensure sections have consistent padding */
+}
+
+/* Settings Section */
+.settings-section {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-section h3 {
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings-section .form-group {
+  margin-bottom: 16px;
+}
+
+.settings-section .form-group small {
+  display: block;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.settings-section button {
+  margin-right: 8px; /* Spacing between buttons */
+}
+
+.status-message {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--success);
+  min-height: 16px; /* Reserve space */
+}
+
+.status-message.error {
+  color: var(--error);
+}
+
+/* Hint in AI Direct Mode */
+.settings-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  text-align: center;
+  display: none; /* Hidden by default, shown via JS if key missing */
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+}
+
+.link-button:hover {
+  color: var(--accent-hover);
+}
+
+/* Ensure sections take available space when visible */
+.scripts-container,
+.ai-direct-mode-section,
+.settings-section {
+  overflow-y: auto;
+  flex: 1; /* Allow sections to grow */
 } 

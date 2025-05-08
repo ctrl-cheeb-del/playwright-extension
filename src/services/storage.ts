@@ -3,12 +3,13 @@ import { executeScript } from '../core/interpreter';
 
 class StorageService {
   private async getData(): Promise<StorageData> {
-    const data = await chrome.storage.local.get(['scriptSettings', 'remoteScripts', 'lastSyncTime', 'localRecordedScripts']);
+    const data = await chrome.storage.local.get(['scriptSettings', 'remoteScripts', 'lastSyncTime', 'localRecordedScripts', 'aiApiKey']);
     return { 
       scriptSettings: data.scriptSettings || {},
       remoteScripts: data.remoteScripts || [],
       lastSyncTime: data.lastSyncTime || 0,
-      localRecordedScripts: data.localRecordedScripts || []
+      localRecordedScripts: data.localRecordedScripts || [],
+      aiApiKey: data.aiApiKey || undefined
     };
   }
 
@@ -17,7 +18,8 @@ class StorageService {
       scriptSettings: data.scriptSettings,
       remoteScripts: data.remoteScripts,
       lastSyncTime: data.lastSyncTime,
-      localRecordedScripts: data.localRecordedScripts
+      localRecordedScripts: data.localRecordedScripts,
+      aiApiKey: data.aiApiKey
     });
   }
 
@@ -54,6 +56,28 @@ class StorageService {
   async getLastSyncTime(): Promise<number> {
     const data = await this.getData();
     return data.lastSyncTime || 0;
+  }
+
+  // API Key Methods
+  async getApiKey(): Promise<string | undefined> {
+    const data = await this.getData();
+    return data.aiApiKey;
+  }
+
+  async saveApiKey(apiKey: string): Promise<void> {
+    if (!apiKey) {
+      await this.clearApiKey();
+      return;
+    }
+    const data = await this.getData();
+    data.aiApiKey = apiKey;
+    await this.setData(data);
+  }
+
+  async clearApiKey(): Promise<void> {
+    const data = await this.getData();
+    delete data.aiApiKey;
+    await this.setData(data);
   }
 
   // Local recorded scripts methods
