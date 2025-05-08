@@ -4,6 +4,7 @@ export interface ScriptContext {
   page: Page;
   log: (msg: string) => void;
   parameters?: Record<string, any>;  // Parameter values provided by the user
+  tryWithAI?: (failedAction: string, errorMessage: string) => Promise<boolean>; // AI fallback function
 }
 
 export interface ScriptParameter {

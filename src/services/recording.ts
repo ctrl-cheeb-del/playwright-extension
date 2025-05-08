@@ -779,7 +779,7 @@ class RecordingService {
 // Description: ${this.escapeString(description)}
 // Generated: ${new Date().toLocaleString()}
 
-const { page, log } = ctx;
+const { page, log, tryWithAI } = ctx;
 
 log('Starting script execution');
 `;
@@ -835,95 +835,135 @@ const tryCopy = async (selector) => {
         scriptCode += `await page.waitForTimeout(${waitTime});\n\n`;
       }
       
+      // For actions that interact with the page, add try-catch with AI fallback
+      if (['click', 'fill', 'press', 'goto', 'paste', 'copy'].includes(action.type)) {
+        scriptCode += `try {\n`;
+      }
+      
       if (action.type === 'click') {
-        scriptCode += `log('Clicking on ${action.selector || 'element'}...');\n`;
+        scriptCode += `  log('Clicking on ${action.selector || 'element'}...');\n`;
         
         // Handle different selector formats
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `await page.${action.selector}.click();\n\n`;
+            scriptCode += `  await page.${action.selector}.click();\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `await page.${action.selector}.click();\n\n`;
+            scriptCode += `  await page.${action.selector}.click();\n`;
           } else {
-            scriptCode += `await page.click('${this.escapeSelector(action.selector)}');\n\n`;
+            scriptCode += `  await page.click('${this.escapeSelector(action.selector)}');\n`;
           }
         } else {
-          scriptCode += `// Warning: No selector available for this click action\n\n`;
+          scriptCode += `  // Warning: No selector available for this click action\n`;
         }
       } else if (action.type === 'fill' && action.value) {
-        scriptCode += `log('Filling ${action.selector || 'element'} with text...');\n`;
+        scriptCode += `  log('Filling ${action.selector || 'element'} with text...');\n`;
         
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
+            scriptCode += `  await page.${action.selector}.fill('${this.escapeString(action.value)}');\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
+            scriptCode += `  await page.${action.selector}.fill('${this.escapeString(action.value)}');\n`;
           } else {
-            scriptCode += `await page.fill('${this.escapeSelector(action.selector)}', '${this.escapeString(action.value)}');\n\n`;
+            scriptCode += `  await page.fill('${this.escapeSelector(action.selector)}', '${this.escapeString(action.value)}');\n`;
           }
         } else {
-          scriptCode += `// Warning: No selector available for this fill action\n\n`;
+          scriptCode += `  // Warning: No selector available for this fill action\n`;
         }
       } else if (action.type === 'paste') {
-        scriptCode += `log('Pasting clipboard content into ${action.selector || 'element'}...');\n`;
+        scriptCode += `  log('Pasting clipboard content into ${action.selector || 'element'}...');\n`;
         
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `await page.${action.selector}.focus();\n`;
-            scriptCode += `try {\n`;
-            scriptCode += `  await page.keyboard.press('Meta+V');\n`;
-            scriptCode += `} catch (error) {\n`;
-            scriptCode += `  await page.keyboard.press('Control+V');\n`;
-            scriptCode += `}\n\n`;
+            scriptCode += `  await page.${action.selector}.focus();\n`;
+            scriptCode += `  try {\n`;
+            scriptCode += `    await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `  } catch (error) {\n`;
+            scriptCode += `    await page.keyboard.press('Control+V');\n`;
+            scriptCode += `  }\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `await page.${action.selector}.focus();\n`;
-            scriptCode += `try {\n`;
-            scriptCode += `  await page.keyboard.press('Meta+V');\n`;
-            scriptCode += `} catch (error) {\n`;
-            scriptCode += `  await page.keyboard.press('Control+V');\n`;
-            scriptCode += `}\n\n`;
+            scriptCode += `  await page.${action.selector}.focus();\n`;
+            scriptCode += `  try {\n`;
+            scriptCode += `    await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `  } catch (error) {\n`;
+            scriptCode += `    await page.keyboard.press('Control+V');\n`;
+            scriptCode += `  }\n`;
           } else {
-            scriptCode += `await tryPaste('${this.escapeSelector(action.selector)}');\n\n`;
+            scriptCode += `  await tryPaste('${this.escapeSelector(action.selector)}');\n`;
           }
         } else {
-          scriptCode += `// Warning: No selector available for this paste action\n\n`;
+          scriptCode += `  // Warning: No selector available for this paste action\n`;
         }
       } else if (action.type === 'copy') {
-        scriptCode += `log('Copying content from ${action.selector || 'element'}...');\n`;
+        scriptCode += `  log('Copying content from ${action.selector || 'element'}...');\n`;
         
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `await page.${action.selector}.focus();\n`;
-            scriptCode += `try {\n`;
-            scriptCode += `  await page.keyboard.press('Meta+C');\n`;
-            scriptCode += `} catch (error) {\n`;
-            scriptCode += `  await page.keyboard.press('Control+C');\n`;
-            scriptCode += `}\n\n`;
+            scriptCode += `  await page.${action.selector}.focus();\n`;
+            scriptCode += `  try {\n`;
+            scriptCode += `    await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `  } catch (error) {\n`;
+            scriptCode += `    await page.keyboard.press('Control+C');\n`;
+            scriptCode += `  }\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `await page.${action.selector}.focus();\n`;
-            scriptCode += `try {\n`;
-            scriptCode += `  await page.keyboard.press('Meta+C');\n`;
-            scriptCode += `} catch (error) {\n`;
-            scriptCode += `  await page.keyboard.press('Control+C');\n`;
-            scriptCode += `}\n\n`;
+            scriptCode += `  await page.${action.selector}.focus();\n`;
+            scriptCode += `  try {\n`;
+            scriptCode += `    await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `  } catch (error) {\n`;
+            scriptCode += `    await page.keyboard.press('Control+C');\n`;
+            scriptCode += `  }\n`;
           } else {
-            scriptCode += `await tryCopy('${this.escapeSelector(action.selector)}');\n\n`;
+            scriptCode += `  await tryCopy('${this.escapeSelector(action.selector)}');\n`;
           }
         } else {
-          scriptCode += `// Warning: No selector available for this copy action\n\n`;
+          scriptCode += `  // Warning: No selector available for this copy action\n`;
         }
       } else if (action.type === 'press' && action.value) {
-        scriptCode += `log('Pressing ${action.value} key...');\n`;
-        scriptCode += `await page.keyboard.press('${this.escapeString(action.value)}');\n\n`;
+        scriptCode += `  log('Pressing ${action.value} key...');\n`;
+        scriptCode += `  await page.keyboard.press('${this.escapeString(action.value)}');\n`;
       } else if (action.type === 'goto' && action.value) {
-        scriptCode += `log('Navigating to ${action.value}...');\n`;
-        scriptCode += `await page.goto('${this.escapeString(action.value)}');\n\n`;
+        scriptCode += `  log('Navigating to ${action.value}...');\n`;
+        scriptCode += `  await page.goto('${this.escapeString(action.value)}');\n`;
+      }
+      
+      // Close try block and add catch with AI fallback for page interaction actions
+      if (['click', 'fill', 'press', 'goto', 'paste', 'copy'].includes(action.type)) {
+        const actionDescription = this.generateActionDescription(action);
+        scriptCode += `} catch (error) {\n`;
+        scriptCode += `  log(\`Error during ${action.type}: \${error.message}\`);\n`;
+        scriptCode += `  // Try to recover using AI\n`;
+        scriptCode += `  const aiSuccess = await tryWithAI('${this.escapeString(actionDescription)}', error.message);\n`;
+        scriptCode += `  if (!aiSuccess) {\n`;
+        scriptCode += `    throw error; // Re-throw if AI couldn't help\n`;
+        scriptCode += `  }\n`;
+        scriptCode += `}\n\n`;
+      } else {
+        scriptCode += `\n`; // Add newline for actions without try-catch
       }
     });
 
     scriptCode += `log('Script completed successfully');\n`;
 
     return scriptCode;
+  }
+
+  // Helper to generate a human-readable description of an action for AI
+  private generateActionDescription(action: RecordedAction): string {
+    switch (action.type) {
+      case 'click':
+        return `Click on element with selector: ${action.selector || 'unknown'}`;
+      case 'fill':
+        return `Fill text "${action.value || ''}" into element with selector: ${action.selector || 'unknown'}`;
+      case 'paste':
+        return `Paste clipboard content into element with selector: ${action.selector || 'unknown'}`;
+      case 'copy':
+        return `Copy content from element with selector: ${action.selector || 'unknown'}`;
+      case 'press':
+        return `Press the ${action.value || 'unknown'} key`;
+      case 'goto':
+        return `Navigate to URL: ${action.value || 'unknown'}`;
+      default:
+        return `${action.type} action`;
+    }
   }
 
   // This method generates a complete module script for copying to clipboard
@@ -944,7 +984,7 @@ const script: ScriptDefinition = {
   description: '${this.escapeString(description)}',
   useCurrentTab: true,
   async run(ctx) {
-    const { page, log } = ctx;
+    const { page, log, tryWithAI } = ctx;
     `;
     
     // Add platform detection code at the beginning if there are paste actions
@@ -998,89 +1038,109 @@ const script: ScriptDefinition = {
         scriptCode += `    await page.waitForTimeout(${waitTime});\n\n`;
       }
       
+      // For actions that interact with the page, add try-catch with AI fallback
+      if (['click', 'fill', 'press', 'goto', 'paste', 'copy'].includes(action.type)) {
+        scriptCode += `    try {\n`;
+      }
+      
       if (action.type === 'click') {
-        scriptCode += `    log('Clicking on ${action.selector || 'element'}...');\n`;
+        scriptCode += `      log('Clicking on ${action.selector || 'element'}...');\n`;
         
         // Handle different selector formats
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `    await page.${action.selector}.click();\n\n`;
+            scriptCode += `      await page.${action.selector}.click();\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `    await page.${action.selector}.click();\n\n`;
+            scriptCode += `      await page.${action.selector}.click();\n`;
           } else {
-            scriptCode += `    await page.click('${this.escapeSelector(action.selector)}');\n\n`;
+            scriptCode += `      await page.click('${this.escapeSelector(action.selector)}');\n`;
           }
         } else {
-          scriptCode += `    // Warning: No selector available for this click action\n\n`;
+          scriptCode += `      // Warning: No selector available for this click action\n`;
         }
       } else if (action.type === 'fill' && action.value) {
-        scriptCode += `    log('Filling ${action.selector || 'element'} with text...');\n`;
+        scriptCode += `      log('Filling ${action.selector || 'element'} with text...');\n`;
         
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `    await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
+            scriptCode += `      await page.${action.selector}.fill('${this.escapeString(action.value)}');\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `    await page.${action.selector}.fill('${this.escapeString(action.value)}');\n\n`;
+            scriptCode += `      await page.${action.selector}.fill('${this.escapeString(action.value)}');\n`;
           } else {
-            scriptCode += `    await page.fill('${this.escapeSelector(action.selector)}', '${this.escapeString(action.value)}');\n\n`;
+            scriptCode += `      await page.fill('${this.escapeSelector(action.selector)}', '${this.escapeString(action.value)}');\n`;
           }
         } else {
-          scriptCode += `    // Warning: No selector available for this fill action\n\n`;
+          scriptCode += `      // Warning: No selector available for this fill action\n`;
         }
       } else if (action.type === 'paste') {
-        scriptCode += `    log('Pasting clipboard content into ${action.selector || 'element'}...');\n`;
+        scriptCode += `      log('Pasting clipboard content into ${action.selector || 'element'}...');\n`;
         
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `    await page.${action.selector}.focus();\n`;
-            scriptCode += `    try {\n`;
-            scriptCode += `      await page.keyboard.press('Meta+V');\n`;
-            scriptCode += `    } catch (error) {\n`;
-            scriptCode += `      await page.keyboard.press('Control+V');\n`;
-            scriptCode += `    }\n\n`;
+            scriptCode += `      await page.${action.selector}.focus();\n`;
+            scriptCode += `      try {\n`;
+            scriptCode += `        await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `      } catch (error) {\n`;
+            scriptCode += `        await page.keyboard.press('Control+V');\n`;
+            scriptCode += `      }\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `    await page.${action.selector}.focus();\n`;
-            scriptCode += `    try {\n`;
-            scriptCode += `      await page.keyboard.press('Meta+V');\n`;
-            scriptCode += `    } catch (error) {\n`;
-            scriptCode += `      await page.keyboard.press('Control+V');\n`;
-            scriptCode += `    }\n\n`;
+            scriptCode += `      await page.${action.selector}.focus();\n`;
+            scriptCode += `      try {\n`;
+            scriptCode += `        await page.keyboard.press('Meta+V');\n`;
+            scriptCode += `      } catch (error) {\n`;
+            scriptCode += `        await page.keyboard.press('Control+V');\n`;
+            scriptCode += `      }\n`;
           } else {
-            scriptCode += `    await tryPaste('${this.escapeSelector(action.selector)}');\n\n`;
+            scriptCode += `      await tryPaste('${this.escapeSelector(action.selector)}');\n`;
           }
         } else {
-          scriptCode += `    // Warning: No selector available for this paste action\n\n`;
+          scriptCode += `      // Warning: No selector available for this paste action\n`;
         }
       } else if (action.type === 'copy') {
-        scriptCode += `    log('Copying content from ${action.selector || 'element'}...');\n`;
+        scriptCode += `      log('Copying content from ${action.selector || 'element'}...');\n`;
         
         if (action.selector) {
           if (action.selector.startsWith('getByLabel(')) {
-            scriptCode += `    await page.${action.selector}.focus();\n`;
-            scriptCode += `    try {\n`;
-            scriptCode += `      await page.keyboard.press('Meta+C');\n`;
-            scriptCode += `    } catch (error) {\n`;
-            scriptCode += `      await page.keyboard.press('Control+C');\n`;
-            scriptCode += `    }\n\n`;
+            scriptCode += `      await page.${action.selector}.focus();\n`;
+            scriptCode += `      try {\n`;
+            scriptCode += `        await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `      } catch (error) {\n`;
+            scriptCode += `        await page.keyboard.press('Control+C');\n`;
+            scriptCode += `      }\n`;
           } else if (action.selector.startsWith('getByRole(')) {
-            scriptCode += `    await page.${action.selector}.focus();\n`;
-            scriptCode += `    try {\n`;
-            scriptCode += `      await page.keyboard.press('Meta+C');\n`;
-            scriptCode += `    } catch (error) {\n`;
-            scriptCode += `      await page.keyboard.press('Control+C');\n`;
-            scriptCode += `    }\n\n`;
+            scriptCode += `      await page.${action.selector}.focus();\n`;
+            scriptCode += `      try {\n`;
+            scriptCode += `        await page.keyboard.press('Meta+C');\n`;
+            scriptCode += `      } catch (error) {\n`;
+            scriptCode += `        await page.keyboard.press('Control+C');\n`;
+            scriptCode += `      }\n`;
           } else {
-            scriptCode += `    await tryCopy('${this.escapeSelector(action.selector)}');\n\n`;
+            scriptCode += `      await tryCopy('${this.escapeSelector(action.selector)}');\n`;
           }
         } else {
-          scriptCode += `    // Warning: No selector available for this copy action\n\n`;
+          scriptCode += `      // Warning: No selector available for this copy action\n`;
         }
       } else if (action.type === 'press' && action.value) {
-        scriptCode += `    log('Pressing ${action.value} key...');\n`;
-        scriptCode += `    await page.keyboard.press('${this.escapeString(action.value)}');\n\n`;
+        scriptCode += `      log('Pressing ${action.value} key...');\n`;
+        scriptCode += `      await page.keyboard.press('${this.escapeString(action.value)}');\n`;
       } else if (action.type === 'goto' && action.value) {
-        scriptCode += `    log('Navigating to ${action.value}...');\n`;
-        scriptCode += `    await page.goto('${this.escapeString(action.value)}');\n\n`;
+        scriptCode += `      log('Navigating to ${action.value}...');\n`;
+        scriptCode += `      await page.goto('${this.escapeString(action.value)}');\n`;
+      }
+      
+      // Close try block and add catch with AI fallback for page interaction actions
+      if (['click', 'fill', 'press', 'goto', 'paste', 'copy'].includes(action.type)) {
+        const actionDescription = this.generateActionDescription(action);
+        scriptCode += `    } catch (error) {\n`;
+        scriptCode += `      log(\`Error during ${action.type}: \${error.message}\`);\n`;
+        scriptCode += `      // Try to recover using AI\n`;
+        scriptCode += `      const aiSuccess = await tryWithAI('${this.escapeString(actionDescription)}', error.message);\n`;
+        scriptCode += `      if (!aiSuccess) {\n`;
+        scriptCode += `        throw error; // Re-throw if AI couldn't help\n`;
+        scriptCode += `      }\n`;
+        scriptCode += `    }\n\n`;
+      } else {
+        scriptCode += `\n`; // Add newline for actions without try-catch
       }
     });
 

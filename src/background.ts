@@ -289,17 +289,67 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
       updateLogs(logs);
     }
 
+    // Add AI fallback capability to the context
     const ctx = {
       page,
       log: (msg: string) => {
         logs.push(msg);
         updateLogs(logs);
       },
-      parameters // Pass parameters to the script context
+      parameters, // Pass parameters to the script context
+      // New method for AI fallback
+      tryWithAI: async (failedAction: string, errorMessage: string): Promise<boolean> => {
+        logs.push(`🤖 Attempting to use AI to fix: "${failedAction}"`);
+        logs.push(`🤖 Error was: ${errorMessage}`);
+        updateLogs(logs);
+        
+        try {
+          // Capture accessibility tree for context
+          const accessibilitySnapshot = await page.accessibility.snapshot({interestingOnly: false});
+          const currentUrl = await page.url();
+          
+          // Get API token
+          const storage = await chrome.storage.local.get('aiApiKey');
+          const token = storage.aiApiKey;
+          
+          if (!token) {
+            logs.push(`🤖 AI fallback failed: No API key found in storage. Please set an API key in settings.`);
+            updateLogs(logs);
+            return false;
+          }
+          
+          logs.push(`🤖 Consulting AI for help with this step...`);
+          updateLogs(logs);
+          
+          // Create a detailed prompt for the AI
+          const aiPrompt = `I'm running a Playwright script and I'm stuck on this action: "${failedAction}".
+The error message is: "${errorMessage}".
+Current URL: ${currentUrl}
+
+Please help me complete this specific step by determining the correct selector or approach.`;
+
+          // Use the AI direct command handler to execute this
+          const result = await handleAiDirectFallback(aiPrompt, token, page, accessibilitySnapshot, logs);
+          
+          if (result.success) {
+            logs.push(`🤖 AI successfully helped resolve the step!`);
+            updateLogs(logs);
+            return true;
+          } else {
+            logs.push(`🤖 AI could not resolve the issue: ${result.error}`);
+            updateLogs(logs);
+            return false;
+          }
+        } catch (aiError) {
+          logs.push(`🤖 Error during AI fallback: ${aiError instanceof Error ? aiError.message : String(aiError)}`);
+          updateLogs(logs);
+          return false;
+        }
+      }
     };
 
     try {
-      // Execute the script with our context
+      // Execute the script with our enhanced context that includes AI fallback capability
       await script.run(ctx);
       logs.push(`Script ${script.name} completed successfully`);
       updateLogs(logs);
@@ -367,6 +417,145 @@ async function executeScript(scriptId: string, parameters?: Record<string, any>)
       error: errorMessage,
       logs
     };
+  }
+}
+
+// New helper function for AI fallback specifically during script execution
+async function handleAiDirectFallback(
+  prompt: string, 
+  token: string, 
+  page: any,
+  accessibilitySnapshot: any,
+  logs: string[]
+): Promise<{success: boolean, error?: string}> {
+  const openAiEndpoint = 'https://api.openai.com/v1/chat/completions';
+  
+  try {
+    logs.push(`🤖 Preparing AI fallback request...`);
+    updateLogs(logs);
+    
+    const stringifiedTree = JSON.stringify(accessibilitySnapshot);
+    
+    const llmApiPayload = {
+      model: "gpt-4.1-2025-04-14", 
+      messages: [
+        { 
+          role: "system", 
+          content: `${LLM_SYSTEM_PROMPT_FOR_DIRECT_AI}
+          
+SPECIAL INSTRUCTIONS FOR SCRIPT FALLBACK:
+You are helping fix a failed Playwright script action. The user will tell you which step failed and the error message.
+Focus only on the specific failing step. Don't try to rewrite the entire script.
+Respond with precise actions that will overcome the immediate obstacle.
+Prefer robust selectors that are less likely to break (aria attributes, text content, etc.).`
+        },
+        { 
+          role: "user", 
+          content: `Accessibility Tree (JSON):
+${stringifiedTree}
+
+User Request - Fix this Playwright script step:
+"${prompt}"`
+        }
+      ],
+      response_format: { type: "json_object" }
+    };
+    
+    logs.push(`🤖 Sending request to AI...`);
+    updateLogs(logs);
+    
+    const llmApiResponse = await fetch(openAiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(llmApiPayload)
+    });
+
+    if (!llmApiResponse.ok) {
+      const errorBody = await llmApiResponse.text();
+      logs.push(`🤖 AI API Error: ${llmApiResponse.status} ${llmApiResponse.statusText}`);
+      updateLogs(logs);
+      return { success: false, error: `API request failed: ${errorBody}` };
+    }
+
+    const llmResponseText = await llmApiResponse.text();
+    const llmResultJson = JSON.parse(llmResponseText);
+    
+    if (llmResultJson.error) {
+      return { success: false, error: `LLM returned an error: ${llmResultJson.error}` };
+    }
+    
+    const actionJson = JSON.parse(llmResultJson.choices[0].message.content);
+    
+    logs.push(`🤖 AI suggested actions: ${JSON.stringify(actionJson)}`);
+    updateLogs(logs);
+    
+    if (!actionJson.actions || !Array.isArray(actionJson.actions) || actionJson.actions.length === 0) {
+      return { success: false, error: 'AI response missing "actions" array or actions array is empty.' };
+    }
+    
+    // Execute the actions suggested by AI
+    for (const step of actionJson.actions) {
+      const { action, selector, value, url } = step;
+      logs.push(`🤖 Executing AI-suggested action: ${action} ${selector ? `on ${selector}` : ''}`);
+      updateLogs(logs);
+      
+      switch (action) {
+        case 'click':
+          if (!selector) throw new Error('Action "click" missing "selector".');
+          await page.click(selector, { timeout: 15000 });
+          logs.push(`🤖 Clicked: ${selector}`);
+          break;
+        case 'fill':
+          if (!selector || value === undefined) throw new Error('Action "fill" missing "selector" or "value".');
+          await page.fill(selector, value, { timeout: 15000 });
+          logs.push(`🤖 Filled: ${selector} with "${value}"`);
+          break;
+        case 'navigate':
+          if (!url) throw new Error('Action "navigate" missing "url".');
+          await page.goto(url, { timeout: 30000 });
+          logs.push(`🤖 Navigated to: ${url}`);
+          break;
+        case 'press':
+          if (!value) throw new Error('Action "press" missing "value".');
+          if (selector) {
+            await page.focus(selector, { timeout: 5000 });
+            logs.push(`🤖 Focused: ${selector}`);
+          }
+          await page.keyboard.press(value);
+          logs.push(`🤖 Pressed key: ${value}`);
+          break;
+        case 'wait':
+          const waitTime = typeof value === 'number' ? value : 1000;
+          logs.push(`🤖 Waiting for ${waitTime}ms`);
+          await page.waitForTimeout(waitTime);
+          break;
+        case 'waitForSelector':
+          if (!selector) throw new Error('Action "waitForSelector" missing "selector".');
+          logs.push(`🤖 Waiting for selector: ${selector}`);
+          await page.waitForSelector(selector, { timeout: 15000 });
+          break;
+        case 'select':
+          if (!selector || value === undefined) throw new Error('Action "select" missing "selector" or "value".');
+          await page.selectOption(selector, value, { timeout: 15000 });
+          logs.push(`🤖 Selected option: ${value} in ${selector}`);
+          break;
+        default:
+          throw new Error(`Unknown action type from AI: "${action}".`);
+      }
+      updateLogs(logs);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between actions
+    }
+    
+    return { success: true };
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logs.push(`🤖 AI fallback execution error: ${errorMessage}`);
+    updateLogs(logs);
+    return { success: false, error: errorMessage };
   }
 }
 

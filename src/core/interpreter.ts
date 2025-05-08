@@ -27,12 +27,18 @@ function createDynamicProxy(target: any, path = ''): any {
 }
 
 function createGlobalScope(context: ScriptContext): Record<string, any> {
+  const scopeCtx: any = {
+    page: createDynamicProxy(context.page, 'page'),
+    log: context.log,
+    parameters: context.parameters || {}
+  };
+
+  if (context.tryWithAI) {
+    scopeCtx.tryWithAI = context.tryWithAI;
+  }
+
   return {
-    ctx: { 
-      page: createDynamicProxy(context.page, 'page'), 
-      log: context.log,
-      parameters: context.parameters || {}
-    },
+    ctx: scopeCtx,
 
     console: {
       log: (...args: any[]) => {
